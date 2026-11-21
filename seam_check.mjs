@@ -140,7 +140,13 @@ async function captureFrameRange(chromeBin, port, scenario, dsf, startF, endF, c
     const { ws, send } = await createCdp(wsUrl);
     await send('Page.enable');
     await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: dsf, mobile: false });
-    const q = new URLSearchParams({ scenario, timings: '/__assets__/vo_timings.json', dsf: String(dsf) }).toString();
+    const q = new URLSearchParams({
+      scenario,
+      timings: '/__assets__/vo_timings.json',
+      dsf: String(dsf),
+      preset: process.env.PRESET || 'explainer',
+      renderer: process.env.RENDERER || 'canvas2d',
+    }).toString();
     await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html?${q}` });
     for (let i = 0; i < 80; i++) {
       const r = await send('Runtime.evaluate', { expression: 'Boolean(window.__ready)', returnByValue: true });

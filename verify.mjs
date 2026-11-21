@@ -131,6 +131,92 @@ function createCdp(wsUrl) {
   });
 }
 
+function srgbToLin(c) {
+  const s = c / 255;
+  return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+}
+
+function relLum(r, g, b) {
+  return 0.2126 * srgbToLin(r) + 0.7152 * srgbToLin(g) + 0.0722 * srgbToLin(b);
+}
+
+function wcagRatio(l1, l2) {
+  const hi = Math.max(l1, l2);
+  const lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+function measureSilhouetteContrast(pngBuf, edges, subjBounds, dsf) {
+  if (!edges || !edges.length) return null;
+  const rw = Math.round(W * dsf);
+  const rh = Math.round(H * dsf);
+  const proc = spawnSync('ffmpeg', [
+    '-v', 'error', '-f', 'image2pipe', '-vcodec', 'png', '-i', 'pipe:0',
+    '-f', 'rawvideo', '-pix_fmt', 'rgb24', 'pipe:1',
+  ], { input: pngBuf, maxBuffer: 20 * 1024 * 1024 });
+  if (proc.status !== 0 || proc.stdout.length < rw * rh * 3) return null;
+  const rgb = proc.stdout;
+  const pixLum = (x, y) => {
+    const ix = Math.max(0, Math.min(rw - 1, Math.round(x * dsf)));
+    const iy = Math.max(0, Math.min(rh - 1, Math.round(y * dsf)));
+    const idx = (iy * rw + ix) * 3;
+    return relLum(rgb[idx], rgb[idx + 1], rgb[idx + 2]);
+  };
+
+  const scx = 0.5 * (subjBounds.minX + subjBounds.maxX);
+  const scy = 0.5 * (subjBounds.minY + subjBounds.maxY);
+
+  // Sample surrounding background luminance at perimeter corners around subject bbox
+  const bgSamples = [];
+  for (const [bx, by] of [
+    [subjBounds.minX - 24, subjBounds.minY - 12],
+    [subjBounds.maxX + 24, subjBounds.minY - 12],
+    [subjBounds.minX - 24, scy],
+    [subjBounds.maxX + 24, scy],
+    [scx, Math.max(198, subjBounds.minY - 18)],
+    [scx, Math.min(800, subjBounds.maxY + 18)],
+  ]) {
+    if (bx >= 8 && bx < W - 8 && by >= 196 && by < 808) {
+      bgSamples.push(pixLum(bx, by));
+    }
+  }
+  const fallbackBgLum = bgSamples.length
+    ? bgSamples.sort((a, b) => a - b)[Math.floor(bgSamples.length / 2)]
+    : 0.15;
+
+  const ratios = [];
+  for (const [ax, ay, bx, by] of edges) {
+    const mx = 0.5 * (ax + bx);
+    const my = 0.5 * (ay + by);
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len = Math.hypot(dx, dy);
+    if (len < 2) continue;
+    let nx = -dy / len;
+    let ny = dx / len;
+    // Orient normal outward from subject center
+    if (nx * (mx - scx) + ny * (my - scy) < 0) { nx = -nx; ny = -ny; }
+
+    // Background luminance just outside silhouette (10-16px outward)
+    const bgLum = (mx + nx * 14 >= 6 && mx + nx * 14 < W - 6 && my + ny * 14 >= 196 && my + ny * 14 < 808)
+      ? pixLum(mx + nx * 14, my + ny * 14)
+      : fallbackBgLum;
+
+    // Best silhouette edge pixel within ±3px across the edge stroke/rim halo
+    let bestR = 1.0;
+    for (let off = -3; off <= 3; off += 1) {
+      const lEdge = pixLum(mx + nx * off, my + ny * off);
+      const r = wcagRatio(lEdge, bgLum);
+      if (r > bestR) bestR = r;
+    }
+    ratios.push(bestR);
+  }
+  if (!ratios.length) return null;
+  ratios.sort((a, b) => a - b);
+  // 75th percentile represents clean outer silhouette boundary (excluding internal occluded edges)
+  return ratios[Math.min(ratios.length - 1, Math.floor(ratios.length * 0.75))];
+}
+
 function rectsOverlapGap(a, b, gap) {
   return (
     a.left < b.right + gap &&
@@ -164,7 +250,13 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
     const { ws, send } = await createCdp(wsUrl);
     await send('Page.enable');
     await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: dsf, mobile: false });
-    const q = new URLSearchParams({ scenario, timings: '/__assets__/vo_timings.json', dsf: String(dsf) }).toString();
+    const q = new URLSearchParams({
+      scenario,
+      timings: '/__assets__/vo_timings.json',
+      dsf: String(dsf),
+      preset: process.env.PRESET || 'explainer',
+      renderer: process.env.RENDERER || 'canvas2d',
+    }).toString();
     await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html?${q}` });
 
     let ready = false;
@@ -185,6 +277,7 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
       hudSafeZone: [],
       captionSafeZone: [],
       subjectTooSmallInExplanation: [],
+      lowContrast: [],
     };
 
     let minWordGapPx = Infinity;
@@ -194,8 +287,10 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
     let maxDarkFactor = 0.0;
     let hudTopPct = null;
     let maxCaptionBottomPct = 0;
+    let minContrastRatio = Infinity;
+    let contrastSamples = 0;
 
-    for (let f = 0; f < totalFrames; f += stepFrames) {
+    for (let idx = 0, f = 0; f < totalFrames; f += stepFrames, idx++) {
       const evalRes = await send('Runtime.evaluate', {
         expression: `(() => { window.renderFrame(${f}, ${FPS}); return window.__inspectFrame(); })()`,
         returnByValue: true,
@@ -205,6 +300,19 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
       }
       const d = evalRes.result.value;
       samples.push({ f, t: d.t, cam: d.cameraState, hook: d.hookRect });
+
+      // Contrast check every 2.0s (every 8th 0.25s sample) via real rendered pixels
+      if (idx % 8 === 0 && d.silhouetteEdges && d.silhouetteEdges.length > 0) {
+        const shot = await send('Page.captureScreenshot', { format: 'png' });
+        const ratio = measureSilhouetteContrast(Buffer.from(shot.data, 'base64'), d.silhouetteEdges, d.subjectBounds, dsf);
+        if (ratio !== null) {
+          contrastSamples++;
+          if (ratio < minContrastRatio) minContrastRatio = ratio;
+          if (ratio < 3.0) {
+            violations.lowContrast.push({ t: +d.t.toFixed(2), ratio: +ratio.toFixed(2), bgLum: +d.bgLum.toFixed(3) });
+          }
+        }
+      }
 
       if (d.bgLum < minBgLum) minBgLum = d.bgLum;
       if (d.darkFactor > maxDarkFactor) maxDarkFactor = d.darkFactor;
@@ -282,7 +390,7 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
       }
     }
 
-    // Hook 0-2s check: Frame 0 must already show bold headline + motion between t=0 and t=0.25s
+    // Hook 0-2s check: Frame 0 must already show bold headline >= 60% width + motion between t=0 and t=0.25s
     const s0 = samples[0];
     const s1 = samples[1];
     const camMove0 = s0 && s1
@@ -292,10 +400,12 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
           s1.cam.pos[2] - s0.cam.pos[2]
         )
       : 0;
+    const hookWidthPct = s0?.hook ? +((s0.hook.width / W) * 100).toFixed(2) : 0;
     const hookPass = Boolean(
       s0?.hook &&
       s0.hook.opacity >= 0.8 &&
       s0.hook.headline.trim().length > 0 &&
+      hookWidthPct >= 60.0 &&
       camMove0 > 0.05 &&
       s1?.hook?.transform !== s0.hook.transform
     );
@@ -334,6 +444,7 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
       captionSafeZoneViolations: violations.captionSafeZone.length,
       hookFrame0Pass: hookPass,
       hookHeadline: s0?.hook?.headline || null,
+      hookWidthPct,
       hookFrame0CamDelta: +camMove0.toFixed(3),
       explanationSubjectMinPct: Number.isFinite(minSubjExplPct) ? +minSubjExplPct.toFixed(2) : null,
       explanationSubjectMaxPct: +maxSubjExplPct.toFixed(2),
@@ -342,6 +453,9 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
       min3sCameraDelta: Number.isFinite(minWindowCamDelta) ? +minWindowCamDelta.toFixed(3) : null,
       minBackdropLum: +minBgLum.toFixed(3),
       maxAdaptiveRimFactor: +maxDarkFactor.toFixed(3),
+      minSilhouetteContrastRatio: Number.isFinite(minContrastRatio) ? +minContrastRatio.toFixed(2) : null,
+      contrastSamples,
+      lowContrastCount: violations.lowContrast.length,
       sampleViolations: {
         captionVsSubject: violations.captionVsSubject.slice(0, 5),
         labelVsLabel: violations.labelVsLabel.slice(0, 5),
@@ -349,6 +463,7 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
         labelVsHud: violations.labelVsHud.slice(0, 5),
         wordGapLt6px: violations.wordGapLt6px.slice(0, 5),
         subjectTooSmall: violations.subjectTooSmallInExplanation.slice(0, 5),
+        lowContrast: violations.lowContrast.slice(0, 5),
       },
       pass: (
         violations.captionVsSubject.length === 0 &&
@@ -359,6 +474,7 @@ async function runDomLayoutGate(scenario, assetsDir, dsf) {
         violations.hudSafeZone.length === 0 &&
         violations.captionSafeZone.length === 0 &&
         violations.subjectTooSmallInExplanation.length === 0 &&
+        violations.lowContrast.length === 0 &&
         hookPass &&
         staticWindows === 0
       ),
@@ -450,10 +566,10 @@ function formatSummaryMarkdown(scenario, gates) {
     `| Subtitle Word Gap (>=6px) | ${mark(d.wordGapLt6pxCount === 0)} | min=${d.minWordGapPx}px (${d.wordGapLt6pxCount} violations) | >= 6px, 0 violations |`,
     `| HUD Safe Zone (10-12%) | ${mark(d.hudSafeZoneViolations === 0)} | top=${d.hudTopPct}% | 9-14% |`,
     `| Caption Safe Zone | ${mark(d.captionSafeZoneViolations === 0)} | maxBottom=${d.maxCaptionBottomPct}% | <= 78.5% |`,
-    `| Hook 0-2s (Motion + Text) | ${mark(d.hookFrame0Pass)} | "${d.hookHeadline}", camDelta=${d.hookFrame0CamDelta} | visible & moving at t=0 |`,
+    `| Hook 0-2s (Motion + >=60% W) | ${mark(d.hookFrame0Pass)} | "${d.hookHeadline}", width=${d.hookWidthPct}%, camDelta=${d.hookFrame0CamDelta} | >= 60% W & moving at t=0 |`,
     `| Subject Size (Explanation) | ${mark(d.explanationTooSmallCount === 0)} | min=${d.explanationSubjectMinPct}%, max=${d.explanationSubjectMaxPct}% | >= 35% |`,
     `| Camera Pacing (<=3s) | ${mark(d.static3sCameraWindows === 0)} | staticWindows=${d.static3sCameraWindows}, minDelta=${d.min3sCameraDelta} | 0 static windows |`,
-    `| Adaptive Contrast | INFO | minBgLum=${d.minBackdropLum}, maxRim=${d.maxAdaptiveRimFactor} | auto rim on dark bg |`,
+    `| Silhouette Contrast (>=3:1) | ${mark(d.lowContrastCount === 0)} | min=${d.minSilhouetteContrastRatio}:1 (${d.contrastSamples} frames, ${d.lowContrastCount} fail) | >= 3.0:1 |`,
   ];
   if (f) {
     lines.push(

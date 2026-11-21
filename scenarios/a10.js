@@ -160,20 +160,20 @@ export function setup(api) {
 
     const flashOuterGeo = new THREE.ConeGeometry(0.38, 1.22, 8);
     flashOuterGeo.rotateX(Math.PI / 2);
-    const flashOuter = addPart(muzzleGroup, flashOuterGeo, 0xffaa1d, { unlit: true, noOutline: true });
+    const flashOuter = addPart(muzzleGroup, flashOuterGeo, 0xffaa1d, { unlit: true, noOutline: true, excludeFromBounds: true });
     flashOuter.position.z = 0.56;
     flashOuter.visible = false;
 
     const flashCoreGeo = new THREE.ConeGeometry(0.20, 0.85, 8);
     flashCoreGeo.rotateX(Math.PI / 2);
-    const flashCore = addPart(muzzleGroup, flashCoreGeo, 0xfff085, { unlit: true, noOutline: true, depthBias: -0.004 });
+    const flashCore = addPart(muzzleGroup, flashCoreGeo, 0xfff085, { unlit: true, noOutline: true, depthBias: -0.004, excludeFromBounds: true });
     flashCore.position.z = 0.38;
     flashCore.visible = false;
 
     const tracers = [];
     const tracerGeo = new THREE.BoxGeometry(0.065, 0.065, 0.92);
     for (let i = 0; i < 7; i++) {
-      const tr = addPart(muzzleGroup, tracerGeo, 0xffbd2e, { unlit: true, noOutline: true });
+      const tr = addPart(muzzleGroup, tracerGeo, 0xffbd2e, { unlit: true, noOutline: true, excludeFromBounds: true });
       tr.visible = false;
       tracers.push(tr);
     }
@@ -516,13 +516,13 @@ export function setup(api) {
       }
       fanGroups.push(fanG);
 
-      // Electric Igniter Sparks & Jagged Lightning Arcs (Beat 4)
-      const sp = addPart(enginesGroup, sparkCoreGeo, 0xffaa1d, { unlit: true, noOutline: true });
+      // Electric Igniter Sparks & Jagged Lightning Arcs (Beat 4, excluded from framing bounds)
+      const sp = addPart(enginesGroup, sparkCoreGeo, 0xffaa1d, { unlit: true, noOutline: true, excludeFromBounds: true });
       sp.position.set(ex, ey, -0.82);
       sp.visible = false;
       igniterSparks.push(sp);
 
-      const halo = addPart(enginesGroup, sparkHaloGeo, 0xff7b1a, { unlit: true, noOutline: true, alpha: 0.65 });
+      const halo = addPart(enginesGroup, sparkHaloGeo, 0xff7b1a, { unlit: true, noOutline: true, alpha: 0.65, excludeFromBounds: true });
       halo.position.set(ex, ey, -0.83);
       halo.visible = false;
       igniterSparks.push(halo);
@@ -532,7 +532,7 @@ export function setup(api) {
       arcGroup.visible = false;
       enginesGroup.add(arcGroup);
       for (let a = 0; a < 3; a++) {
-        const seg = addPart(arcGroup, arcSegGeo, a === 1 ? 0xfff078 : 0xff8a14, { unlit: true, noOutline: true });
+        const seg = addPart(arcGroup, arcSegGeo, a === 1 ? 0xfff078 : 0xff8a14, { unlit: true, noOutline: true, excludeFromBounds: true });
         seg.position.set((a - 1) * 0.07, 0, 0);
         seg.rotation.z = (a % 2 === 0 ? 0.55 : -0.65);
       }
@@ -996,34 +996,36 @@ export function setup(api) {
         fg.rotation.z = t * fanSpeed * (idx === 0 ? 1 : -1);
       });
 
-      // Igniter electric arcs/sparks active during Beat 4 igniter phase + midpoint
+      // Igniter electric arcs/sparks active during Beat 4 igniter phase + midpoint (smooth modulation, no high-freq strobe)
       const igniterOn = t >= tIgniter + 0.85 && t <= Math.max(tIgniter + 4.9, igniterMid + 0.95);
       igniterSparks.forEach((sp, idx) => {
-        sp.visible = igniterOn && (Math.sin(t * 52 + idx * 1.7) > -0.35);
-        if (sp.visible) sp.scale.setScalar(0.85 + 0.45 * Math.abs(Math.sin(t * 38 + idx)));
+        sp.visible = igniterOn;
+        if (sp.visible) sp.scale.setScalar(0.95 + 0.25 * Math.sin(t * 10 + idx));
       });
       igniterArcs.forEach((ag, idx) => {
-        ag.visible = igniterOn && (Math.sin(t * 44 + idx * 2.3) > -0.45);
+        ag.visible = igniterOn;
         if (ag.visible) {
-          ag.rotation.z = t * (idx === 0 ? 29 : -31);
-          ag.scale.setScalar(0.85 + 0.35 * Math.sin(t * 60 + idx));
+          ag.rotation.z = t * (idx === 0 ? 7.5 : -8.5);
+          ag.scale.setScalar(0.92 + 0.22 * Math.sin(t * 9 + idx));
         }
       });
 
       if (isFiring) {
-        const pulse = Math.sin(t * 72) > 0;
-        root.position.set(Math.sin(t * 95) * 0.042, Math.cos(t * 110) * 0.032, -0.085);
+        // Smooth damped recoil & muzzle glow (low-freq 10 rad/s, zero frame-alternating strobe jitter)
+        const pulse = 0.5 + 0.5 * Math.sin(t * 14);
+        const recoilKick = -0.095 - 0.035 * pulse;
+        root.position.set(0, Math.sin(t * 2.1) * 0.045, recoilKick);
         flashOuter.visible = true;
-        flashOuter.scale.setScalar(pulse ? 1.24 : 0.84);
-        flashOuter.rotation.z = t * 19;
-        flashCore.visible = pulse;
-        flashCore.scale.setScalar(pulse ? 1.15 : 0.72);
-        flashCore.rotation.z = -t * 23;
-        flashOverlay.style.opacity = pulse ? '0.52' : '0.18';
+        flashOuter.scale.setScalar(0.92 + 0.24 * pulse);
+        flashOuter.rotation.z = t * 9.5;
+        flashCore.visible = true;
+        flashCore.scale.setScalar(0.84 + 0.26 * pulse);
+        flashCore.rotation.z = -t * 11.0;
+        flashOverlay.style.opacity = (0.24 + 0.22 * pulse).toFixed(2);
 
         tracers.forEach((tr, i) => {
           tr.visible = true;
-          const zProg = 0.25 + ((t * 20 + i * 0.95) % 2.8);
+          const zProg = 0.25 + ((t * 14 + i * 0.95) % 2.8);
           tr.position.set((i % 2 === 0 ? 0.05 : -0.05), ((i % 3) - 1) * 0.035, zProg);
         });
       } else {

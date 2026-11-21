@@ -13,6 +13,8 @@ export function parseCommonArgs(argv) {
     output: process.env.OUTPUT_MP4 || '',
     shards: Number(process.env.SHARDS || 3),
     dsf: Number(process.env.DSF || 1.5),
+    preset: process.env.PRESET || 'explainer',
+    renderer: process.env.RENDERER || 'canvas2d',
     shardSpec: '',
   };
   for (let i = 0; i < argv.length; i++) {
@@ -23,6 +25,8 @@ export function parseCommonArgs(argv) {
     else if (a === '--output' && argv[i + 1]) opts.output = argv[++i];
     else if (a === '--shards' && argv[i + 1]) opts.shards = Number(argv[++i]);
     else if (a === '--dsf' && argv[i + 1]) opts.dsf = Number(argv[++i]);
+    else if (a === '--preset' && argv[i + 1]) opts.preset = argv[++i];
+    else if (a === '--renderer' && argv[i + 1]) opts.renderer = argv[++i];
     else if (a === '--shard' && argv[i + 1]) opts.shardSpec = argv[++i];
   }
   if (!opts.output) {
@@ -202,6 +206,8 @@ export async function muxSegments(opts) {
 
   const aggregated = {
     scenario: opts.scenario,
+    preset: shardMetrics[0]?.preset || opts.preset || 'explainer',
+    renderer: shardMetrics[0]?.renderer || opts.renderer || 'canvas2d',
     shards: expectedN,
     totalFrames,
     gop: shardMetrics[0]?.gop || 24,

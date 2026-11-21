@@ -1,4 +1,5 @@
 import * as THREE from '../vendor/three160.module.min.js';
+import { resolvePreset } from './presets.js';
 
 export { THREE };
 
@@ -93,7 +94,7 @@ export function buildMeshEdges(geo, isSmooth = false) {
   return edges;
 }
 
-export function buildCaptionChunks(words) {
+export function buildCaptionChunks(words, maxWords = 7) {
   const clauses = [];
   let curClauseId = null;
   let curWords = [];
@@ -122,14 +123,16 @@ export function buildCaptionChunks(words) {
   for (let c = 0; c < clauses.length; c++) {
     const cw = clauses[c];
     const nextFirst = c < clauses.length - 1 ? clauses[c + 1][0].start : null;
-    if (cw.length <= 7) {
+    if (cw.length <= maxWords) {
       pushChunk(cw, nextFirst);
     } else {
-      const mid = Math.ceil(cw.length / 2);
-      const partA = cw.slice(0, mid);
-      const partB = cw.slice(mid);
-      pushChunk(partA, partB[0].start);
-      pushChunk(partB, nextFirst);
+      const parts = Math.ceil(cw.length / maxWords);
+      const perPart = Math.ceil(cw.length / parts);
+      for (let p = 0; p < cw.length; p += perPart) {
+        const slice = cw.slice(p, p + perPart);
+        const nextSliceFirst = (p + perPart < cw.length) ? cw[p + perPart].start : nextFirst;
+        pushChunk(slice, nextSliceFirst);
+      }
     }
   }
   return chunks;
@@ -138,6 +141,15 @@ export function buildCaptionChunks(words) {
 export function createEngine(opts = {}) {
   const defaultFps = opts.fps || 24;
   const dsf = Number(opts.dsf || 1.5);
+  const preset = resolvePreset(opts.preset);
+  const rendererMode = String(opts.renderer || 'canvas2d').toLowerCase();
+  const flags = {
+    autoFrame: opts.flags?.autoFrame !== false,
+    adaptiveRim: opts.flags?.adaptiveRim !== false,
+    labelLayout: opts.flags?.labelLayout !== false,
+    smoothShade: opts.flags?.smoothShade !== false,
+    hook: opts.flags?.hook !== false,
+  };
   const canvas = document.getElementById('c2d');
   canvas.width = Math.round(W * dsf);
   canvas.height = Math.round(H * dsf);
@@ -173,6 +185,7 @@ export function createEngine(opts = {}) {
       noOutline: Boolean(partOpts.noOutline),
       noSpecular: Boolean(partOpts.noSpecular),
       smooth: isSmooth,
+      excludeFromBounds: Boolean(partOpts.excludeFromBounds),
       alpha: partOpts.alpha !== undefined ? partOpts.alpha : 1.0,
       depthBias: partOpts.depthBias || 0,
       outlineStrength: partOpts.outlineStrength !== undefined ? partOpts.outlineStrength : 1.0,
@@ -268,6 +281,7 @@ export function createEngine(opts = {}) {
   let lastDarkFactor = 0.0;
   let lastCamTarget = new THREE.Vector3();
   let currentFrameTime = 0;
+  let lastSilhouetteEdges = [];
 
   function parseCssColors(str) {
     if (!str) return [];
@@ -302,8 +316,12 @@ export function createEngine(opts = {}) {
     return cols;
   }
 
+  function srgbToLin(c) {
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  }
+
   function estimateBackdropLuminance() {
-    let compLum = 0.25;
+    let compLum = 0.10;
     const layers = [dom.bg0, dom.bg1, dom.bg2];
     for (const el of layers) {
       if (!el) continue;
@@ -316,7 +334,8 @@ export function createEngine(opts = {}) {
       let sumL = 0;
       let sumW = 0;
       for (const [r, g, b, a] of cols) {
-        const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        // True WCAG relative luminance (linearized sRGB) so dark/mid crossover guarantees >=3:1 everywhere
+        const lum = 0.2126 * srgbToLin(r) + 0.7152 * srgbToLin(g) + 0.0722 * srgbToLin(b);
         sumL += lum * a;
         sumW += a;
       }
@@ -333,9 +352,10 @@ export function createEngine(opts = {}) {
     ctx.clearRect(0, 0, W, H);
     if (hooks && hooks.before3D) hooks.before3D(ctx, W, H);
 
-    // Adaptive contrast: measure backdrop luminance & compute dark-background factor (generic)
+    // Adaptive contrast based on true WCAG backdrop luminance (scene data, not frame feedback):
+    // bgLum <= 0.13 -> bright outer rim (>=5:1); bgLum >= 0.19 -> crisp dark ink (>=4.5:1)
     const bgLum = estimateBackdropLuminance();
-    const darkFactor = clamp01((0.26 - bgLum) / 0.15);
+    const darkFactor = flags.adaptiveRim ? smoothstep(0.19, 0.11, bgLum) : 0.0;
     lastBgLum = bgLum;
     lastDarkFactor = darkFactor;
 
@@ -344,6 +364,7 @@ export function createEngine(opts = {}) {
     _projMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
 
     const drawList = [];
+    lastSilhouetteEdges = [];
     const camX = camera.position.x;
     const camY = camera.position.y;
     const camZ = camera.position.z;
@@ -433,7 +454,7 @@ export function createEngine(opts = {}) {
           const ndoth = shadeN.dot(_halfVec);
 
           // Smooth toon band transitions (eliminates jagged stepped bands on curved meshes)
-          const bandW = isSmooth ? 0.13 : 0.035;
+          const bandW = flags.smoothShade ? (isSmooth ? 0.13 : 0.035) : 0.0001;
           const tMid = smoothstep(-0.14 - bandW, -0.14 + bandW, ndotl);
           const tLit = smoothstep(0.30 - bandW, 0.30 + bandW, ndotl);
 
@@ -510,6 +531,13 @@ export function createEngine(opts = {}) {
             ? Math.min(faceDepth[ed.f0], faceDepth[ed.f1])
             : (v0 ? faceDepth[ed.f0] : faceDepth[ed.f1]);
 
+          if (isSilhouette && !ud.excludeFromBounds) {
+            const mx = 0.5 * (scrX[ed.a] + scrX[ed.b]);
+            const my = 0.5 * (scrY[ed.a] + scrY[ed.b]);
+            if (mx > 24 && mx < W - 24 && my > 195 && my < 800) {
+              lastSilhouetteEdges.push([scrX[ed.a], scrY[ed.a], scrX[ed.b], scrY[ed.b]]);
+            }
+          }
           drawList.push({
             kind: 1,
             ax: scrX[ed.a], ay: scrY[ed.a],
@@ -535,17 +563,17 @@ export function createEngine(opts = {}) {
         ctx.beginPath();
         ctx.moveTo(item.ax, item.ay);
         ctx.lineTo(item.bx, item.by);
-        // Adaptive bright rim halo on silhouettes when backdrop is dark
+        // Adaptive bright outer rim halo on dark backgrounds + crisp dark ink inner edge (>=3:1 WCAG everywhere)
         if (item.isSilhouette && darkFactor > 0.08) {
-          const rimStrength = darkFactor * (0.68 + 0.32 * (item.objDark || 0));
-          ctx.globalAlpha = solidAlpha * item.alpha * Math.min(0.95, rimStrength);
-          ctx.strokeStyle = '#9ce6ff';
-          ctx.lineWidth = item.lw + 2.4 * darkFactor;
+          const rimAlpha = smoothstep(0.08, 0.40, darkFactor);
+          ctx.globalAlpha = solidAlpha * item.alpha * rimAlpha;
+          ctx.strokeStyle = preset.palette.rimHex;
+          ctx.lineWidth = item.lw + 3.6 * rimAlpha;
           ctx.stroke();
         }
         ctx.globalAlpha = solidAlpha * item.alpha;
-        ctx.strokeStyle = (item.isSilhouette && darkFactor > 0.55) ? '#1a273a' : '#0e1118';
-        ctx.lineWidth = item.lw * (item.isSilhouette && darkFactor > 0.35 ? 0.82 : 1.0);
+        ctx.strokeStyle = '#080a0f';
+        ctx.lineWidth = item.lw;
         ctx.stroke();
         continue;
       }
@@ -623,8 +651,12 @@ export function createEngine(opts = {}) {
     const halfW = w * 0.5;
     const halfH = h * 0.5;
     const p = projectToScreen(anchorObj);
-    const lx = Math.max(halfW + 10, Math.min(W - halfW - 10, p.x + offsetX));
-    const ly = Math.max(204 + halfH, Math.min(H * 0.80 - halfH, p.y + offsetY));
+    // Pure-time 8px spatial hysteresis quantization (>4px deadband, zero cross-frame state)
+    const quantize = (v, step = 8) => Math.round(v / step) * step;
+    const qx = quantize(p.x + offsetX, 8);
+    const qy = quantize(p.y + offsetY, 8);
+    const lx = Math.max(halfW + 10, Math.min(W - halfW - 10, qx));
+    const ly = Math.max(204 + halfH, Math.min(H * 0.80 - halfH, qy));
 
     activeCallouts.push({ el, line, dot, p, lx, ly, halfW, halfH, opacity });
   }
@@ -640,19 +672,49 @@ export function createEngine(opts = {}) {
 
   function resolveCalloutLayout() {
     if (!activeCallouts.length) return;
+    if (!flags.labelLayout) {
+      for (const c of activeCallouts) {
+        const ix = Math.round(c.lx);
+        const iy = Math.round(c.ly);
+        c.el.style.left = `${ix}px`;
+        c.el.style.top = `${iy}px`;
+        c.el.style.opacity = c.opacity.toFixed(2);
+        c.line.setAttribute('x1', Math.round(c.p.x));
+        c.line.setAttribute('y1', Math.round(c.p.y));
+        c.line.setAttribute('x2', ix);
+        c.line.setAttribute('y2', iy);
+        c.line.setAttribute('opacity', (c.opacity * 0.92).toFixed(2));
+        c.dot.setAttribute('cx', Math.round(c.p.x));
+        c.dot.setAttribute('cy', Math.round(c.p.y));
+        c.dot.setAttribute('opacity', c.opacity.toFixed(2));
+      }
+      activeCallouts.length = 0;
+      return;
+    }
     const MIN_GAP = 14; // strictly >= 10px required for label-vs-label, label-vs-caption, label-vs-HUD
     const MARGIN_X = 12;
 
-    const hudRect = getElementRect(dom.topPill) || { left: 100, top: 136, right: W - 100, bottom: 188 };
-    const hookRect = getElementRect(dom.hookBanner);
-    const capRect = getElementRect(dom.captionEl);
+    // Fixed deterministic safe obstacles (immune to 1-frame caption scale bounce)
+    const hudRect = { left: 60, top: 134, right: W - 60, bottom: 192 };
+    const hookVisible = flags.hook && currentFrameTime >= 0 && currentFrameTime < 2.15 && dom.hookBanner && dom.hookBanner.style.display !== 'none';
+    const hookRect = hookVisible ? { left: 90, top: 198, right: W - 90, bottom: 294 } : null;
+    const capRectLive = getElementRect(dom.captionEl);
+    // Use a stable envelope around the caption band whenever a caption is present
+    const capRect = capRectLive
+      ? {
+          left: Math.min(18, capRectLive.left),
+          top: Math.min(812, capRectLive.top - 4),
+          right: Math.max(W - 18, capRectLive.right),
+          bottom: Math.max(972, capRectLive.bottom + 4),
+        }
+      : null;
 
     const staticObstacles = [hudRect];
     if (hookRect) staticObstacles.push(hookRect);
     if (capRect) staticObstacles.push(capRect);
 
     const minYBound = Math.max(hudRect.bottom + MIN_GAP, hookRect ? hookRect.bottom + MIN_GAP : 0);
-    const maxYBound = H * 0.84; // keep well above bottom Shorts UI
+    const maxYBound = Math.round(H * 0.84); // keep well above bottom Shorts UI
 
     const boxOf = (c, cx = c.lx, cy = c.ly) => ({
       left: cx - c.halfW,
@@ -750,12 +812,12 @@ export function createEngine(opts = {}) {
         let best = null;
         let bestCost = Infinity;
         const xCandidates = [
-          c.lx,
-          MARGIN_X + c.halfW + 4,
-          W * 0.5,
-          W - MARGIN_X - c.halfW - 4,
+          Math.round(c.lx),
+          Math.round(MARGIN_X + c.halfW + 4),
+          Math.round(W * 0.5),
+          Math.round(W - MARGIN_X - c.halfW - 4),
         ];
-        for (let cy = minYBound + c.halfH; cy <= maxYBound - c.halfH; cy += 22) {
+        for (let cy = Math.round(minYBound + c.halfH); cy <= Math.round(maxYBound - c.halfH); cy += 22) {
           for (const cx of xCandidates) {
             if (!isFree(cx, cy)) continue;
             const cost = Math.hypot(cx - c.p.x, cy - c.p.y) + Math.abs(cy - c.ly) * 0.35;
@@ -770,19 +832,23 @@ export function createEngine(opts = {}) {
           c.ly = best.cy;
         }
       }
+      c.lx = Math.round(c.lx);
+      c.ly = Math.round(c.ly);
       placed.push(boxOf(c));
     }
 
     for (const c of activeCallouts) {
-      c.el.style.left = `${c.lx.toFixed(1)}px`;
-      c.el.style.top = `${c.ly.toFixed(1)}px`;
+      const ix = Math.round(c.lx);
+      const iy = Math.round(c.ly);
+      c.el.style.left = `${ix}px`;
+      c.el.style.top = `${iy}px`;
       c.el.style.opacity = c.opacity.toFixed(2);
 
-      // Leader line always stays connected from 3D projected anchor to label center
+      // Leader line always stays connected from 3D projected anchor to integer-locked label center
       c.line.setAttribute('x1', c.p.x.toFixed(1));
       c.line.setAttribute('y1', c.p.y.toFixed(1));
-      c.line.setAttribute('x2', c.lx.toFixed(1));
-      c.line.setAttribute('y2', c.ly.toFixed(1));
+      c.line.setAttribute('x2', String(ix));
+      c.line.setAttribute('y2', String(iy));
       c.line.setAttribute('opacity', (c.opacity * 0.92).toFixed(2));
 
       c.dot.setAttribute('cx', c.p.x.toFixed(1));
@@ -799,6 +865,7 @@ export function createEngine(opts = {}) {
       if (!grp) continue;
       grp.traverse((o) => {
         if (!o.isMesh || !isVisibleInHierarchy(o)) return;
+        if (o.userData && o.userData.excludeFromBounds) return;
         if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
         box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));
       });
@@ -844,7 +911,7 @@ export function createEngine(opts = {}) {
 
   /**
    * Generic deterministic camera pacing overlay (pure function of t; zero cross-frame state).
-   * Guarantees immediate motion at Frame 0 and at least 1 camera cut/zoom/orbit variation every <= 2.6s.
+   * Uses clean monotonic zoom/orbit within each 2.7s shot + intentional cuts (zero vibration).
    */
   function applyCameraPacing(t, camTarget) {
     const totalDur = TIMINGS.total_duration || 45.0;
@@ -853,26 +920,27 @@ export function createEngine(opts = {}) {
     const dist = offset.length();
     if (dist < 1e-4) return;
 
-    // 1. Immediate kinetic intro sweep in 0..0.6s so Frame 0 is already dynamically moving
-    const introEnv = Math.exp(-t * 4.2);
+    // 1. Immediate smooth kinetic intro sweep in 0..0.6s so Frame 0 is already dynamically moving
+    const introEnv = Math.exp(-t * 3.8);
     const introDistMul = 1.0 + 0.14 * introEnv;
-    const introYaw = -0.16 * introEnv;
+    const introYaw = -0.15 * introEnv;
 
-    // 2. Deterministic 2.5s pacing windows: alternates subtle zoom/orbit shots without fighting scenario beats
-    const segDur = 2.5;
+    // 2. Deterministic sub-shot cuts with clean monotonic slow push/orbit inside each shot (preset-driven)
+    const segDur = preset.camera.segDur;
     const segIdx = Math.floor(t / segDur);
     const segU = (t - segIdx * segDur) / segDur;
     const patterns = [
-      { yaw0: 0.0, yaw1: 0.06, d0: 1.00, d1: 0.93, pitchY: 0.0 },
-      { yaw0: -0.11, yaw1: -0.04, d0: 0.91, d1: 0.97, pitchY: 0.18 },
-      { yaw0: 0.12, yaw1: 0.05, d0: 0.96, d1: 0.89, pitchY: -0.14 },
-      { yaw0: -0.06, yaw1: 0.04, d0: 0.93, d1: 0.98, pitchY: 0.10 },
+      { yaw0: 0.00, yaw1: 0.07, d0: 1.00, d1: 0.94, pitchY: 0.00 },
+      { yaw0: -0.10, yaw1: -0.02, d0: 0.95, d1: 0.90, pitchY: 0.16 },
+      { yaw0: 0.11, yaw1: 0.04, d0: 0.98, d1: 0.91, pitchY: -0.12 },
+      { yaw0: -0.05, yaw1: 0.04, d0: 0.96, d1: 0.91, pitchY: 0.10 },
     ];
     const pat = patterns[segIdx % patterns.length];
-    const paceScale = holdFade * clamp01(t / 0.35);
-    const dYaw = introYaw + (pat.yaw0 + (pat.yaw1 - pat.yaw0) * segU) * paceScale;
-    const dMul = introDistMul * (1 + ((pat.d0 + (pat.d1 - pat.d0) * segU) - 1) * paceScale);
-    const dY = pat.pitchY * paceScale;
+    const paceScale = holdFade * smoothstep(0.0, 0.35, t);
+    const dYaw = introYaw + (pat.yaw0 + (pat.yaw1 - pat.yaw0) * segU) * preset.camera.orbitAmp * paceScale;
+    const rawDMul = pat.d0 + (pat.d1 - pat.d0) * segU;
+    const dMul = introDistMul * (1 + (rawDMul - 1) * preset.camera.zoomAmp * paceScale);
+    const dY = (pat.pitchY + preset.camera.elevBias) * paceScale;
 
     const cosY = Math.cos(dYaw);
     const sinY = Math.sin(dYaw);
@@ -893,7 +961,15 @@ export function createEngine(opts = {}) {
     return t >= 2.2 && t <= (TIMINGS.total_duration || 45.0) - 2.0;
   }
 
+  /**
+   * Smooth analytical framing controller over static core-mesh bbox and fixed deterministic
+   * vertical safe band. Zero per-frame deadband feedback loops -> zero temporal jitter.
+   */
   function enforceUpperSubjectFraming(groups, camTarget, opts = {}) {
+    if (!flags.autoFrame) {
+      lastCamTarget.copy(camTarget);
+      return;
+    }
     const t = opts.t ?? currentFrameTime;
     if (opts.pacing !== false) {
       applyCameraPacing(t, camTarget);
@@ -915,38 +991,28 @@ export function createEngine(opts = {}) {
       new THREE.Vector3(box.max.x, box.max.y, box.max.z),
     ];
 
-    // Live safe vertical zone strictly between HUD/Hook (top) and Caption (bottom)
-    const hudRect = getElementRect(dom.topPill);
-    const hookRect = getElementRect(dom.hookBanner);
-    const capRect = getElementRect(dom.captionEl);
-
-    const safeTop = Math.max(
-      hudRect ? hudRect.bottom + 12 : 200,
-      hookRect ? hookRect.bottom + 10 : 0
-    );
-    const safeBottom = capRect ? Math.min(H * 0.625, capRect.top - 16) : H * 0.615;
-    const availH = Math.max(260, safeBottom - safeTop);
-
-    // Generic composition rule: main subject >= 35% screen height during explanation beats
-    const explanation = isExplanationTime(t);
-    const minSubjH = explanation ? Math.min(availH * 0.86, H * 0.365) : Math.min(availH * 0.76, H * 0.28);
-    const maxSubjH = Math.min(availH * 0.88, H * 0.455);
+    // Smooth deterministic safe vertical band (NEVER reads live 1-line/2-line caption height!)
+    const hookExit = smoothstep(1.75, 2.20, t);
+    const safeTop = flags.hook ? (294 - 90 * hookExit) : 204;
+    const safeBottom = 794; // strictly above 2-line caption top (~832px) at all times
+    const availH = safeBottom - safeTop;
     const idealCy = safeTop + availH * 0.50;
+
+    // Smooth desired subject height: ~32% during hook banner -> preset targetHeightFrac during explanation beats (>=35%)
+    const explBlend = smoothstep(1.65, 2.35, t);
+    const targetH = Math.min(availH * 0.88, H * (0.318 + (preset.camera.targetHeightFrac - 0.318) * explBlend));
 
     const measure = () => {
       camera.updateMatrixWorld(true);
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
       const v = new THREE.Vector3();
       for (const c of corners) {
         v.copy(c).project(camera);
-        const sx = (v.x * 0.5 + 0.5) * W;
         const sy = (-v.y * 0.5 + 0.5) * H;
-        if (sx < minX) minX = sx;
-        if (sx > maxX) maxX = sx;
         if (sy < minY) minY = sy;
         if (sy > maxY) maxY = sy;
       }
-      return { minX, maxX, minY, maxY, h: maxY - minY, w: maxX - minX, cy: 0.5 * (minY + maxY) };
+      return { minY, maxY, h: Math.max(10, maxY - minY), cy: 0.5 * (minY + maxY) };
     };
 
     const camFwd = new THREE.Vector3();
@@ -954,49 +1020,31 @@ export function createEngine(opts = {}) {
     const camUp = new THREE.Vector3();
     const upAxis = new THREE.Vector3(0, 1, 0);
 
-    for (let iter = 0; iter < 24; iter++) {
+    // Fixed 4 smooth analytical passes (no discontinuous if/break deadbands -> C^infinity smooth!)
+    const boxCenter = box.getCenter(new THREE.Vector3());
+    for (let pass = 0; pass < 4; pass++) {
       const m = measure();
-      const tooLow = m.maxY - safeBottom;
-      const tooHigh = safeTop - m.minY;
-      const tooSmall = minSubjH - m.h;
-      const tooBig = m.h - maxSubjH;
-
-      if (tooLow <= 0 && tooHigh <= 1 && tooSmall <= 2 && tooBig <= 2) break;
-
       camFwd.subVectors(camTarget, camera.position).normalize();
-      const distNow = camera.position.distanceTo(camTarget);
+      const distNow = Math.max(2.5, camera.position.distanceTo(boxCenter));
       camRight.crossVectors(camFwd, upAxis);
       if (camRight.lengthSq() < 1e-6) camRight.set(1, 0, 0);
       camRight.normalize();
       camUp.crossVectors(camRight, camFwd).normalize();
 
-      // 1. Scale adjustment (pull back if too tall or both top/bottom overflow; zoom in if too small)
-      if (tooBig > 2 || (tooLow > 2 && tooHigh > 2)) {
-        const ratio = m.h / Math.max(10, maxSubjH * 0.94);
-        const pushBack = Math.min(3.4, Math.max(0.30, (ratio - 1) * distNow * 0.85));
-        camera.position.addScaledVector(camFwd, -pushBack);
-      } else if (tooSmall > 2 && distNow > 3.2) {
-        const ratio = minSubjH / Math.max(10, m.h);
-        const pullIn = Math.min(distNow - 3.0, Math.max(0.20, (1 - 1 / ratio) * distNow * 0.75));
-        camera.position.addScaledVector(camFwd, pullIn);
-      }
-
-      // 2. Vertical recentering strictly inside [safeTop, safeBottom]
+      // Continuous distance ratio scaling toward targetH (smoothly preserves pacing push/pull!)
+      const ratio = m.h / targetH;
+      const clampedRatio = Math.max(0.55, Math.min(1.85, ratio));
+      const newDist = Math.max(3.2, Math.min(26.0, distNow * clampedRatio));
+      const deltaDist = newDist - distNow;
+      camera.position.addScaledVector(camFwd, -deltaDist * 0.85);
       camera.lookAt(camTarget);
+
+      // Continuous vertical recentering strictly inside [safeTop, safeBottom]
       const m2 = measure();
-      const dist2 = camera.position.distanceTo(camTarget);
-      let shiftPx = 0;
-      if (m2.maxY > safeBottom) {
-        shiftPx = m2.maxY - safeBottom + 6;
-      } else if (m2.minY < safeTop) {
-        shiftPx = -(safeTop - m2.minY + 4);
-      } else if (Math.abs(m2.cy - idealCy) > 24) {
-        shiftPx = (m2.cy - idealCy) * 0.45;
-      }
-      if (Math.abs(shiftPx) > 1) {
-        const worldShift = (shiftPx / H) * dist2 * 0.92;
-        camTarget.addScaledVector(camUp, -Math.max(-2.8, Math.min(2.8, worldShift)));
-      }
+      const dist2 = Math.max(2.5, camera.position.distanceTo(boxCenter));
+      const cyErr = m2.cy - idealCy;
+      const worldShift = (cyErr / H) * dist2 * 0.86;
+      camTarget.addScaledVector(camUp, -Math.max(-3.0, Math.min(3.0, worldShift)));
       camera.lookAt(camTarget);
     }
     lastCamTarget.copy(camTarget);
@@ -1036,7 +1084,8 @@ export function createEngine(opts = {}) {
 
   function updateHookBanner(t, hookCfg) {
     if (!dom.hookBanner) return;
-    if (!hookCfg || !hookCfg.headline || t < 0 || t >= 2.15) {
+    const hookDur = preset.tempo.hookDur;
+    if (!flags.hook || !hookCfg || !hookCfg.headline || t < 0 || t >= hookDur) {
       dom.hookBanner.style.opacity = '0';
       dom.hookBanner.style.display = 'none';
       return;
@@ -1044,9 +1093,12 @@ export function createEngine(opts = {}) {
     dom.hookKicker.textContent = hookCfg.kicker || '';
     dom.hookHeadline.textContent = hookCfg.headline;
     dom.hookBanner.style.display = 'flex';
+    dom.hookBanner.style.borderColor = preset.palette.hookBorder;
+    dom.hookKicker.style.color = preset.palette.accentHex;
 
     // Already visible & mid-motion at Frame 0 (t=0.00s)!
-    const exitMix = t > 1.80 ? clamp01((t - 1.80) / 0.35) : 0;
+    const exitStart = hookDur - 0.35;
+    const exitMix = t > exitStart ? clamp01((t - exitStart) / 0.35) : 0;
     const opacity = 1.0 - exitMix;
     const introSpring = Math.exp(-t * 6.5);
     const scale = 1.0 + 0.10 * introSpring + 0.022 * Math.sin(t * 7.5) * (1 - exitMix);
@@ -1064,8 +1116,9 @@ export function createEngine(opts = {}) {
       if (t >= ch.start && t <= ch.end) { activeChunk = ch; break; }
     }
     if (activeChunk) {
-      const chunkPop = 1 + 0.04 * Math.exp(-Math.max(0, t - activeChunk.start) * 14);
+      const chunkPop = 1 + preset.tempo.captionPopScale * Math.exp(-Math.max(0, t - activeChunk.start) * 14);
       dom.captionEl.style.display = 'inline-block';
+      dom.captionEl.style.background = preset.palette.captionBg;
       dom.captionEl.style.transform = `scale(${chunkPop.toFixed(3)})`;
       dom.captionEl.innerHTML = activeChunk.words
         .map((w) => {
@@ -1074,8 +1127,8 @@ export function createEngine(opts = {}) {
           if (isActive) {
             const wDur = Math.max(0.08, w.end - w.start);
             const u = clamp01((t - w.start) / wDur);
-            const lift = -4.0 - 3.0 * Math.sin(u * Math.PI);
-            style = ` style="transform: translateY(${lift.toFixed(2)}px)"`;
+            const lift = -preset.tempo.wordLiftPx - 3.0 * Math.sin(u * Math.PI);
+            style = ` style="color:${preset.palette.accentHex}; transform: translateY(${lift.toFixed(2)}px)"`;
           }
           return `<span class="w${isActive ? ' active' : ''}"${style}>${w.text}</span>`;
         })
@@ -1109,7 +1162,7 @@ export function createEngine(opts = {}) {
       const res = await fetch(timingsUrl);
       if (res.ok) {
         TIMINGS = await res.json();
-        CHUNKS = buildCaptionChunks(TIMINGS.words || []);
+        CHUNKS = buildCaptionChunks(TIMINGS.words || [], preset.narration.chunkMaxWords);
       }
     } catch (e) {
       console.warn('Could not load timings:', timingsUrl, e);
@@ -1179,6 +1232,10 @@ export function createEngine(opts = {}) {
         },
         bgLum: lastBgLum,
         darkFactor: lastDarkFactor,
+        silhouetteSampleCount: lastSilhouetteEdges.length,
+        silhouetteEdges: lastSilhouetteEdges.length <= 48
+          ? lastSilhouetteEdges
+          : Array.from({ length: 48 }, (_, i) => lastSilhouetteEdges[Math.floor((i * lastSilhouetteEdges.length) / 48)]),
       };
     };
 

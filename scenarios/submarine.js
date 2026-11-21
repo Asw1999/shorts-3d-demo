@@ -160,22 +160,22 @@ export function setup(api) {
 
   for (const s of [-1, 1]) {
     const tx = s * 0.45;
-    const tf = addPart(cutawayGroup, tankFrameGeo, 0xdbeafe, { alpha: 0.28, depthBias: -0.002 });
+    const tf = addPart(cutawayGroup, tankFrameGeo, 0xdbeafe, { alpha: 0.28, depthBias: -0.002, excludeFromBounds: true });
     tf.position.set(tx, 0.0, 0.08);
     tankFrames.push(tf);
 
-    const wf = addPart(cutawayGroup, tankFillGeo, 0x22b8cf, { depthBias: -0.004, outlineStrength: 0.65 });
+    const wf = addPart(cutawayGroup, tankFillGeo, 0x22b8cf, { depthBias: -0.004, outlineStrength: 0.65, excludeFromBounds: true });
     wf.position.set(tx, TANK_BASE_Y, 0.08);
     waterFills.push(wf);
 
-    const ab = addPart(cutawayGroup, tankAirGeo, 0xe0f7ff, { unlit: true, noOutline: true, alpha: 0.78, depthBias: -0.006 });
+    const ab = addPart(cutawayGroup, tankAirGeo, 0xe0f7ff, { unlit: true, noOutline: true, alpha: 0.78, depthBias: -0.006, excludeFromBounds: true });
     ab.position.set(tx, 0.25, 0.08);
     ab.visible = false;
     airBlasts.push(ab);
 
     // Top Vent Valve assembly on each ballast tank
-    addPart(cutawayGroup, ventBaseGeo, 0xf59e0b, { smooth: true, depthBias: -0.004 }).position.set(tx, 0.40, 0.18);
-    const vc = addPart(cutawayGroup, ventCapGeo, 0xef4444, { smooth: true, depthBias: -0.005 });
+    addPart(cutawayGroup, ventBaseGeo, 0xf59e0b, { smooth: true, depthBias: -0.004, excludeFromBounds: true }).position.set(tx, 0.40, 0.18);
+    const vc = addPart(cutawayGroup, ventCapGeo, 0xef4444, { smooth: true, depthBias: -0.005, excludeFromBounds: true });
     vc.position.set(tx, 0.49, 0.18);
     ventCaps.push(vc);
   }
@@ -197,7 +197,7 @@ export function setup(api) {
   const bubbleGeo = new THREE.IcosahedronGeometry(0.085, 1);
   const bubble3D = [];
   for (let i = 0; i < 16; i++) {
-    const b = addPart(subGroup, bubbleGeo, 0xc8f4ff, { unlit: true, noOutline: true, alpha: 0.78, depthBias: -0.008 });
+    const b = addPart(subGroup, bubbleGeo, 0xc8f4ff, { unlit: true, noOutline: true, alpha: 0.78, depthBias: -0.008, excludeFromBounds: true });
     b.visible = false;
     bubble3D.push(b);
   }
@@ -214,15 +214,15 @@ export function setup(api) {
   const arrowUp = new THREE.Group();
   arrowUp.position.set(1.18, 0.0, 0.15);
   forceGroup.add(arrowUp);
-  addPart(arrowUp, fShaftGeo, 0x22d3ee, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = 0.38;
-  addPart(arrowUp, fHeadGeo, 0x67e8f9, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = 0.90;
+  addPart(arrowUp, fShaftGeo, 0x22d3ee, { smooth: true, unlit: true, depthBias: -0.006, excludeFromBounds: true }).position.y = 0.38;
+  addPart(arrowUp, fHeadGeo, 0x67e8f9, { smooth: true, unlit: true, depthBias: -0.006, excludeFromBounds: true }).position.y = 0.90;
 
   // Downward Weight Arrow (Coral/Orange, -Y)
   const arrowDown = new THREE.Group();
   arrowDown.position.set(-1.18, 0.0, 0.15);
   forceGroup.add(arrowDown);
-  addPart(arrowDown, fShaftGeo, 0xf97316, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = -0.38;
-  const fHeadDown = addPart(arrowDown, fHeadGeo, 0xfb923c, { smooth: true, unlit: true, depthBias: -0.006 });
+  addPart(arrowDown, fShaftGeo, 0xf97316, { smooth: true, unlit: true, depthBias: -0.006, excludeFromBounds: true }).position.y = -0.38;
+  const fHeadDown = addPart(arrowDown, fHeadGeo, 0xfb923c, { smooth: true, unlit: true, depthBias: -0.006, excludeFromBounds: true });
   fHeadDown.position.y = -0.90;
   fHeadDown.rotation.z = Math.PI;
 
