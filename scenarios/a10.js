@@ -214,12 +214,12 @@ export function setup(api) {
     const fuselageBody = new THREE.Group();
     airframe.add(fuselageBody);
 
-    // Rear main fuselage (smooth >=20-sided cylinder + tapered tail cone + cockpit turtle deck)
-    const rearBodyGeo = new THREE.CylinderGeometry(0.45, 0.52, 2.52, 24, 2);
+    // Rear main fuselage (smooth high-subdiv cylinder + tapered tail cone + cockpit turtle deck)
+    const rearBodyGeo = new THREE.CylinderGeometry(0.45, 0.52, 2.52, 32, 4);
     rearBodyGeo.rotateX(Math.PI / 2);
     addPart(fuselageBody, rearBodyGeo, 0x89929d, { smooth: true }).position.set(0, 0.14, -1.16);
 
-    const tailConeGeo = new THREE.CylinderGeometry(0.18, 0.45, 0.72, 20, 1);
+    const tailConeGeo = new THREE.CylinderGeometry(0.18, 0.45, 0.72, 26, 3);
     tailConeGeo.rotateX(Math.PI / 2);
     addPart(fuselageBody, tailConeGeo, 0x7f8894, { smooth: true }).position.set(0, 0.18, -2.74);
 
@@ -241,8 +241,8 @@ export function setup(api) {
     dorsalDeck.position.set(0, 0.51, -0.22);
     dorsalDeck.rotation.x = -0.14;
 
-    // Forward Nose Dome (smooth >=16 segments, positioned cleanly ahead of cockpit & above gun shroud)
-    const noseGeo = new THREE.SphereGeometry(0.47, 20, 16);
+    // Forward Nose Dome (smooth high-subdiv sphere for crisp non-stepped toon bands)
+    const noseGeo = new THREE.SphereGeometry(0.47, 28, 22);
     noseGeo.scale(0.96, 0.85, 1.40);
     const nose = addPart(fuselageBody, noseGeo, 0x919aa5, { smooth: true });
     nose.position.set(0, 0.14, 1.34);
@@ -463,7 +463,7 @@ export function setup(api) {
     const enginesGroup = new THREE.Group();
     airframe.add(enginesGroup);
 
-    const engBodyGeo = new THREE.CylinderGeometry(0.285, 0.26, 1.42, 22, 2);
+    const engBodyGeo = new THREE.CylinderGeometry(0.285, 0.26, 1.42, 28, 3);
     engBodyGeo.rotateX(Math.PI / 2);
     const engLipGeo = new THREE.TorusGeometry(0.245, 0.044, 10, 22);
     const engExhaustGeo = new THREE.CylinderGeometry(0.24, 0.195, 0.28, 20, 1);
@@ -1144,5 +1144,10 @@ export function setup(api) {
 
   }
 
-  return { render, getSubjectGroups };
+  const hook = {
+    kicker: 'FAKTA GILA',
+    headline: 'MERIAM TERBANG BERSAYAP!',
+  };
+
+  return { render, getSubjectGroups, hook };
 }

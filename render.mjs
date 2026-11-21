@@ -8,6 +8,8 @@ import { parseCommonArgs, resolveAssetsDir, probeSegment, muxSegments } from './
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FPS = 24;
+const GOP = FPS; // 1-second closed GOP aligned with shard boundaries for 0.0000% seam determinism
+const PLAYWRIGHT_PINNED_VERSION = process.env.PLAYWRIGHT_VERSION || '1.65.1';
 const CDP_PORT = 9235;
 const PROFILE_DIR = path.join(process.env.TMPDIR || os.tmpdir(), 'shorts_chrome_profile');
 
@@ -70,21 +72,21 @@ function detectChromeBin() {
   if (process.env.CHROME_BIN) {
     const envBin = process.env.CHROME_BIN.trim();
     checked.push(`CHROME_BIN=${envBin}`);
-    if (fs.existsSync(envBin)) return envBin;
+    if (fs.existsSync(envBin)) return { bin: envBin, source: 'env' };
     const resolved = whichBin(envBin);
-    if (resolved) return resolved;
+    if (resolved) return { bin: resolved, source: 'env' };
     throw new Error(`CHROME_BIN is set to "${envBin}" but binary was not found or not executable.`);
   }
 
   for (const name of ['chromium', 'chromium-browser', 'google-chrome']) {
     checked.push(name);
     const found = whichBin(name);
-    if (found) return found;
+    if (found) return { bin: found, source: 'system' };
   }
 
   checked.push('playwright cache (~/.cache/ms-playwright/chromium-*)');
   const pw = findPlaywrightChrome();
-  if (pw) return pw;
+  if (pw) return { bin: pw, source: 'playwright' };
 
   throw new Error(
     `No Chromium/Chrome binary found. Checked in order: ${checked.join(', ')}. ` +
@@ -98,6 +100,23 @@ function getChromeVersion(chromeBin) {
   } catch {
     return 'unknown';
   }
+}
+
+function getFfmpegVersion() {
+  try {
+    const out = execFileSync('ffmpeg', ['-version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return out.split('\n')[0].trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+export function computeShardRange(shardNum, totalShards, totalFrames) {
+  const rawChunk = Math.ceil(totalFrames / totalShards);
+  const alignedChunk = totalShards > 1 ? Math.ceil(rawChunk / GOP) * GOP : totalFrames;
+  const startFrame = Math.min(totalFrames, (shardNum - 1) * alignedChunk);
+  const endFrame = shardNum === totalShards ? totalFrames : Math.min(totalFrames, shardNum * alignedChunk);
+  return { startFrame, endFrame, frameCount: Math.max(0, endFrame - startFrame), gop: GOP };
 }
 
 function startServer(assetsDir) {
@@ -247,17 +266,17 @@ async function renderSegment({
   scenario,
   dsf,
   chromeBin,
+  chromeSource,
   chromeVersion,
+  ffmpegVersion,
+  setupInfo,
   serverPort,
   outDir,
   shardsDir,
   previewMap,
   pageErrors,
 }) {
-  const chunk = Math.ceil(totalFrames / totalShards);
-  const startFrame = (shardNum - 1) * chunk;
-  const endFrame = Math.min(totalFrames, shardNum * chunk);
-  const frameCount = Math.max(0, endFrame - startFrame);
+  const { startFrame, endFrame, frameCount } = computeShardRange(shardNum, totalShards, totalFrames);
   const segPath = path.join(shardsDir, `seg_${shardNum}.mp4`);
   const tmpSegPath = path.join(shardsDir, `seg_${shardNum}.tmp.mp4`);
   const metricsPath = path.join(shardsDir, `metrics_${shardNum}.json`);
@@ -356,7 +375,7 @@ async function renderSegment({
       throw new Error(`Shard ${shardNum}/${totalShards} did not signal window.__ready=true (${chromeErr.slice(-300)})`);
     }
 
-    // Video-only encode with strictly identical parameters across all shards for lossless concat
+    // Video-only encode with closed GOP aligned to shard boundaries + CQP 18 for 0.0000% seam determinism
     const ffArgs = [
       '-y',
       '-f', 'image2pipe',
@@ -374,7 +393,8 @@ async function renderSegment({
       '-colorspace', 'bt709',
       '-bsf:v', 'h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1:video_full_range_flag=0',
       '-preset', 'medium',
-      '-crf', '18',
+      '-qp', '18',
+      '-x264-params', `keyint=${GOP}:min-keyint=${GOP}:scenecut=0:open-gop=0:threads=1`,
       '-video_track_timescale', '24000',
       '-an',
       '-movflags', '+faststart',
@@ -433,6 +453,7 @@ async function renderSegment({
       startFrame,
       endFrame,
       frameCount,
+      gop: GOP,
       renderLoopMs,
       totalMs,
       msPerFrame: +(renderLoopMs / frameCount).toFixed(2),
@@ -440,7 +461,12 @@ async function renderSegment({
       dsf,
       nodeVersion: process.version,
       chromeBin,
+      chromeSource,
       chromeVersion,
+      playwrightPinnedVersion: PLAYWRIGHT_PINNED_VERSION,
+      ffmpegVersion,
+      setupDurationSec: setupInfo?.setupDurationSec ?? null,
+      aptCacheHit: setupInfo?.aptCacheHit ?? null,
     };
     fs.writeFileSync(metricsPath, JSON.stringify(metrics, null, 2) + '\n', 'utf8');
     console.log(`Shard ${shardNum}/${totalShards} done: ${segPath} (${frameCount} frames, ${metrics.msPerFrame}ms/f render, ${(totalMs / 1000).toFixed(1)}s total)`);
@@ -467,10 +493,16 @@ async function main() {
 
   const totalFrames = Math.ceil(timings.total_duration * FPS);
   const previewMap = buildPreviewMap(timings, totalFrames, FPS);
-  const chromeBin = detectChromeBin();
+  const { bin: chromeBin, source: chromeSource } = detectChromeBin();
   const chromeVersion = getChromeVersion(chromeBin);
+  const ffmpegVersion = getFfmpegVersion();
+  const setupInfoPath = path.join(outDir, 'setup_info.json');
+  let setupInfo = null;
+  if (fs.existsSync(setupInfoPath)) {
+    try { setupInfo = JSON.parse(fs.readFileSync(setupInfoPath, 'utf8')); } catch {}
+  }
 
-  console.log(`Scenario=${opts.scenario} | Frames=${totalFrames} @ ${FPS}fps | DSF=${opts.dsf} | Assets=${assetsDir} | Chrome=${chromeBin} (${chromeVersion})`);
+  console.log(`Scenario=${opts.scenario} | Frames=${totalFrames} @ ${FPS}fps (GOP=${GOP}) | DSF=${opts.dsf} | Assets=${assetsDir} | Chrome=${chromeBin} [${chromeSource}] (${chromeVersion}) | PlaywrightPin=${PLAYWRIGHT_PINNED_VERSION}`);
 
   const { server, port } = await startServer(assetsDir);
   const pageErrors = [];
@@ -487,7 +519,10 @@ async function main() {
         scenario: opts.scenario,
         dsf: opts.dsf,
         chromeBin,
+        chromeSource,
         chromeVersion,
+        ffmpegVersion,
+        setupInfo,
         serverPort: port,
         outDir,
         shardsDir,
@@ -509,7 +544,10 @@ async function main() {
               scenario: opts.scenario,
               dsf: opts.dsf,
               chromeBin,
+              chromeSource,
               chromeVersion,
+              ffmpegVersion,
+              setupInfo,
               serverPort: port,
               outDir,
               shardsDir,
@@ -536,4 +574,6 @@ async function main() {
   }
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

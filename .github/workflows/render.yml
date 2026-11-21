@@ -18,6 +18,9 @@ concurrency:
   group: render-${{ inputs.scenario || 'submarine' }}
   cancel-in-progress: true
 
+env:
+  PLAYWRIGHT_VERSION: '1.65.1'
+
 jobs:
   plan:
     runs-on: ubuntu-24.04
@@ -54,13 +57,15 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Cache Playwright Chromium
+      - name: Cache APT FFmpeg packages
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
-          key: pw-chromium-latest-${{ runner.os }}-${{ hashFiles('cloud/setup.sh') }}
+          path: ~/.cache/shorts-apt-debs
+          key: apt-ffmpeg-ubuntu2404-v1
 
       - name: Run cloud setup
+        env:
+          OUT_DIR: out_cloud
         run: bash cloud/setup.sh
 
       - name: Render shard ${{ matrix.shard }}/${{ inputs.shards }}
@@ -76,7 +81,7 @@ jobs:
       - name: Upload shard segment and metrics
         uses: actions/upload-artifact@v4
         with:
-          name: shard-${{ matrix.shard }}
+          name: shard-${{ inputs.scenario }}-${{ matrix.shard }}
           path: |
             out_cloud/shards/seg_${{ matrix.shard }}.mp4
             out_cloud/shards/metrics_${{ matrix.shard }}.json
@@ -96,17 +101,21 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Ensure FFmpeg installed
-        run: |
-          if ! command -v ffmpeg >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
+      - name: Cache APT FFmpeg packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/shorts-apt-debs
+          key: apt-ffmpeg-ubuntu2404-v1
+
+      - name: Run cloud setup (cached ffmpeg + runner Chrome)
+        env:
+          OUT_DIR: out_cloud
+        run: bash cloud/setup.sh
 
       - name: Download all shard artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: shard-*
+          pattern: shard-${{ inputs.scenario }}-*
           path: out_cloud/shards
           merge-multiple: true
 
@@ -116,17 +125,37 @@ jobs:
           ASSETS_DIR: assets/${{ inputs.scenario }}
           OUT_DIR: out_cloud
           SHARDS: ${{ inputs.shards }}
-          OUTPUT_MP4: demo_${{ inputs.scenario }}.mp4
+          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.3.mp4
         run: |
           node mux.mjs
+
+      - name: Run Seam Check (SHARDS=1 vs ${{ inputs.shards }}, ±3 frames = 0.0000%)
+        env:
+          SCENARIO: ${{ inputs.scenario }}
+          ASSETS_DIR: assets/${{ inputs.scenario }}
+          OUT_DIR: out_cloud
+          SHARDS: ${{ inputs.shards }}
+          DSF: '1.5'
+        run: |
+          node seam_check.mjs
+
+      - name: Run CI Verification Gates (0.25s layout/framing/word-gap + ffprobe + ebur128)
+        env:
+          SCENARIO: ${{ inputs.scenario }}
+          ASSETS_DIR: assets/${{ inputs.scenario }}
+          OUT_DIR: out_cloud
+          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.3.mp4
+          DSF: '1.5'
+        run: |
+          node verify.mjs
           cat out_cloud/metrics.json
 
       - name: Upload final video and metrics artifact
         uses: actions/upload-artifact@v4
         with:
-          name: video
+          name: video-${{ inputs.scenario }}
           path: |
-            out_cloud/demo_${{ inputs.scenario }}.mp4
+            out_cloud/demo_${{ inputs.scenario }}_v1.3.mp4
             out_cloud/metrics.json
           retention-days: 1
           if-no-files-found: error

@@ -46,7 +46,7 @@ export function setup(api) {
     { z:  3.08, rx: 0.24, ry: 0.25, cy: -0.06 },
     { z:  3.28, rx: 0.02, ry: 0.02, cy: -0.07 },
   ];
-  const hullGeo = buildLoftGeometry(hullSections, 24);
+  const hullGeo = buildLoftGeometry(hullSections, 32, { axialSubdiv: 2 });
   const hullOuter = addPart(subGroup, hullGeo, 0x45566e, { smooth: true, depthBias: 0.002 });
 
   // Clean non-intersecting lower keel skeg fin beneath the hull bottom (no coplanar z-fighting)
@@ -66,7 +66,7 @@ export function setup(api) {
     { z:  0.65, rx: 0.18, ry: 0.46, cy: 0.46 },
     { z:  0.84, rx: 0.05, ry: 0.41, cy: 0.41 },
   ];
-  const sailGeo = buildLoftGeometry(sailProfile, 16);
+  const sailGeo = buildLoftGeometry(sailProfile, 22, { axialSubdiv: 2 });
   const sailMesh = addPart(sailGroup, sailGeo, 0x334054, { smooth: true });
 
   // Sail top cap + yellow navigation band + bridge windows + periscope/masts
@@ -207,27 +207,27 @@ export function setup(api) {
   subGroup.add(forceGroup);
   forceGroup.visible = false;
 
-  const fShaftGeo = new THREE.CylinderGeometry(0.085, 0.085, 1.05, 12);
-  const fHeadGeo = new THREE.ConeGeometry(0.24, 0.46, 12);
+  const fShaftGeo = new THREE.CylinderGeometry(0.085, 0.085, 0.72, 14);
+  const fHeadGeo = new THREE.ConeGeometry(0.22, 0.38, 14);
 
   // Upward Buoyancy Arrow (Cyan/Emerald, +Y)
   const arrowUp = new THREE.Group();
-  arrowUp.position.set(1.25, 0.0, 0.15);
+  arrowUp.position.set(1.18, 0.0, 0.15);
   forceGroup.add(arrowUp);
-  addPart(arrowUp, fShaftGeo, 0x22d3ee, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = 0.52;
-  addPart(arrowUp, fHeadGeo, 0x67e8f9, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = 1.24;
+  addPart(arrowUp, fShaftGeo, 0x22d3ee, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = 0.38;
+  addPart(arrowUp, fHeadGeo, 0x67e8f9, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = 0.90;
 
   // Downward Weight Arrow (Coral/Orange, -Y)
   const arrowDown = new THREE.Group();
-  arrowDown.position.set(-1.25, 0.0, 0.15);
+  arrowDown.position.set(-1.18, 0.0, 0.15);
   forceGroup.add(arrowDown);
-  addPart(arrowDown, fShaftGeo, 0xf97316, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = -0.52;
+  addPart(arrowDown, fShaftGeo, 0xf97316, { smooth: true, unlit: true, depthBias: -0.006 }).position.y = -0.38;
   const fHeadDown = addPart(arrowDown, fHeadGeo, 0xfb923c, { smooth: true, unlit: true, depthBias: -0.006 });
-  fHeadDown.position.y = -1.24;
+  fHeadDown.position.y = -0.90;
   fHeadDown.rotation.z = Math.PI;
 
   const neutralAnchor = new THREE.Object3D();
-  neutralAnchor.position.set(1.25, 0.88, 0.15);
+  neutralAnchor.position.set(1.18, 0.70, 0.15);
   forceGroup.add(neutralAnchor);
 
   // --- 4. Opening & Ending Dock/Pier Stage (Dermaga) + 2 Parameterized Chibi Characters ---
@@ -651,5 +651,10 @@ export function setup(api) {
     api.setTopPill(pillLabel, dotClass);
   }
 
-  return { render, getSubjectGroups };
+  const hook = {
+    kicker: 'RIBUAN TON',
+    headline: 'TENGGELAM & MUNCUL SESUKA HATI!',
+  };
+
+  return { render, getSubjectGroups, hook };
 }

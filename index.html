@@ -43,10 +43,10 @@
       pointer-events: none;
     }
 
-    /* Top pill badge (>=36px scaled at 1080w) */
+    /* Top pill badge in Shorts safe zone (~10.6% height, >=36px scaled at 1080w) */
     #top-pill {
       position: absolute;
-      top: 42px;
+      top: 136px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -54,8 +54,8 @@
       gap: 10px;
       padding: 10px 24px 10px 18px;
       border-radius: 999px;
-      background: rgba(14, 17, 24, 0.72);
-      border: 2.5px solid rgba(255, 212, 59, 0.65);
+      background: rgba(14, 17, 24, 0.78);
+      border: 2.5px solid rgba(255, 212, 59, 0.72);
       color: rgba(255, 255, 255, 0.96);
       font-size: 25px;
       font-weight: 900;
@@ -64,6 +64,7 @@
       white-space: nowrap;
       pointer-events: none;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      z-index: 20;
     }
     #pill-dot {
       width: 13px;
@@ -81,6 +82,45 @@
     #pill-dot.active-cool {
       background: #45d6ff;
       box-shadow: 0 0 11px #45d6ff;
+    }
+
+    /* Kinetic 0-2s bold hook claim banner (parameterized per scenario) */
+    #hook-banner {
+      position: absolute;
+      top: 204px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      max-width: 660px;
+      padding: 10px 24px 12px;
+      border-radius: 18px;
+      background: rgba(14, 17, 24, 0.86);
+      border: 3.5px solid #ffd43b;
+      box-shadow: 0 6px 0 #0e1118, 0 14px 28px rgba(0, 0, 0, 0.55);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 18;
+    }
+    #hook-kicker {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 2.2px;
+      color: #ffd43b;
+      text-transform: uppercase;
+    }
+    #hook-headline {
+      font-size: 31px;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      text-transform: uppercase;
+      -webkit-text-stroke: 5px #0d1017;
+      paint-order: stroke fill;
     }
 
     /* Oversized floating comic callout tags (>=36px at 1080w -> >=24px at 720w) */
@@ -102,6 +142,7 @@
       opacity: 0;
       white-space: nowrap;
       pointer-events: none;
+      z-index: 15;
     }
     .callout::before {
       content: "";
@@ -113,12 +154,12 @@
       flex-shrink: 0;
     }
 
-    /* Full-clause captions at ~69% screen height (65-72% safe zone) with semi-transparent backing pill */
+    /* Full-clause captions at ~70% screen height (strictly clear of bottom Shorts UI) */
     #caption-wrap {
       position: absolute;
       left: 18px;
       right: 18px;
-      top: 69%;
+      top: 70%;
       bottom: auto;
       transform: translateY(-50%);
       display: flex;
@@ -126,13 +167,14 @@
       align-items: center;
       text-align: center;
       pointer-events: none;
+      z-index: 22;
     }
     .caption-box {
       display: inline-block;
       max-width: 684px;
       padding: 10px 18px;
       border-radius: 20px;
-      background: rgba(12, 15, 23, 0.42);
+      background: rgba(12, 15, 23, 0.44);
       font-size: 38px;
       font-weight: 900;
       line-height: 1.24;
@@ -147,7 +189,7 @@
     .caption-box .w {
       display: inline-block;
       padding: 0 6px;
-      margin: 0 3.5px;
+      margin: 0 4px;
       color: #ffffff;
       -webkit-text-stroke: 8px #0d1017;
       paint-order: stroke fill;
@@ -187,6 +229,11 @@
     </svg>
 
     <div id="top-pill"><span id="pill-dot"></span><span id="pill-text"></span></div>
+
+    <div id="hook-banner">
+      <span id="hook-kicker"></span>
+      <span id="hook-headline"></span>
+    </div>
 
     <div id="lbl-a" class="callout"></div>
     <div id="lbl-b" class="callout"></div>

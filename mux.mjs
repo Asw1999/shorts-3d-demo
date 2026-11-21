@@ -193,20 +193,39 @@ export async function muxSegments(opts) {
   const maxShardMs = shardMetrics.reduce((acc, m) => Math.max(acc, m.totalMs || 0), 0);
   const muxMs = Date.now() - muxStartMs;
 
+  const setupDurations = shardMetrics.map((m) => m.setupDurationSec).filter((v) => typeof v === 'number');
+  const muxSetupPath = path.join(outDir, 'setup_info.json');
+  let muxSetupInfo = null;
+  if (fs.existsSync(muxSetupPath)) {
+    try { muxSetupInfo = JSON.parse(fs.readFileSync(muxSetupPath, 'utf8')); } catch {}
+  }
+
   const aggregated = {
     scenario: opts.scenario,
     shards: expectedN,
     totalFrames,
+    gop: shardMetrics[0]?.gop || 24,
     audioSource: audioFile ? path.relative(__dirname, audioFile) : null,
     outputMp4: path.relative(__dirname, outMp4),
     nodeVersion: process.version,
+    chromeBin: shardMetrics[0]?.chromeBin || null,
+    chromeSource: shardMetrics[0]?.chromeSource || null,
     chromeVersion: shardMetrics[0]?.chromeVersion || null,
+    playwrightPinnedVersion: shardMetrics[0]?.playwrightPinnedVersion || '1.65.1',
+    ffmpegVersion: shardMetrics[0]?.ffmpegVersion || null,
     sumShardTimeSec: +(sumShardMs / 1000).toFixed(2),
     maxShardTimeSec: +(maxShardMs / 1000).toFixed(2),
     muxTimeSec: +(muxMs / 1000).toFixed(2),
+    avgRenderLoopMsPerFrame: shardMetrics.length
+      ? +(shardMetrics.reduce((acc, m) => acc + (m.renderLoopMs || 0), 0) / Math.max(1, totalFrames)).toFixed(2)
+      : null,
     avgMsPerFramePerShard: shardMetrics.length
       ? +(sumShardMs / Math.max(1, totalFrames)).toFixed(2)
       : null,
+    avgShardSetupSec: setupDurations.length
+      ? +(setupDurations.reduce((a, b) => a + b, 0) / setupDurations.length).toFixed(2)
+      : null,
+    muxSetupSec: muxSetupInfo?.setupDurationSec ?? null,
     perShard: shardMetrics,
   };
   fs.writeFileSync(path.join(outDir, 'metrics.json'), JSON.stringify(aggregated, null, 2) + '\n', 'utf8');
