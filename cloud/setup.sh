@@ -34,17 +34,18 @@ fi
 
 # 3. Install Chromium via Playwright (idempotent; skips if cached)
 PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
-if ! find "$PW_CACHE" -maxdepth 3 \( -name "chrome" -o -name "headless_shell" \) -type f 2>/dev/null | grep -q .; then
-  npx --yes playwright@1.52.0 install chromium
+PW_PKG="${PLAYWRIGHT_PKG:-playwright@latest}"
+if ! find "$PW_CACHE" -maxdepth 4 \( -name "chrome" -o -name "headless_shell" -o -name "chrome-headless-shell" \) -type f 2>/dev/null | grep -q .; then
+  npx --yes "$PW_PKG" install chromium
 fi
 if command -v sudo >/dev/null 2>&1; then
-  sudo npx --yes playwright@1.52.0 install-deps chromium
+  sudo env "PATH=$PATH" npx --yes "$PW_PKG" install-deps chromium
 else
-  npx --yes playwright@1.52.0 install-deps chromium
+  npx --yes "$PW_PKG" install-deps chromium
 fi
 
 echo "=== Setup Complete ==="
 echo "Node: $(node -v)"
 echo "FFmpeg: $(ffmpeg -version | head -n 1)"
 echo "DejaVu Sans Bold: $(fc-match 'DejaVu Sans:bold' || true)"
-find "$PW_CACHE" -maxdepth 3 \( -name "chrome" -o -name "headless_shell" \) -type f 2>/dev/null || true
+find "$PW_CACHE" -maxdepth 4 \( -name "chrome" -o -name "headless_shell" -o -name "chrome-headless-shell" \) -type f 2>/dev/null || true

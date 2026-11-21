@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.make.outputs.matrix }}
@@ -39,7 +39,7 @@ jobs:
 
   render:
     needs: plan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: true
@@ -58,7 +58,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: pw-chromium-1.52.0-${{ runner.os }}-${{ hashFiles('cloud/setup.sh') }}
+          key: pw-chromium-latest-${{ runner.os }}-${{ hashFiles('cloud/setup.sh') }}
 
       - name: Run cloud setup
         run: bash cloud/setup.sh
@@ -85,7 +85,7 @@ jobs:
 
   mux:
     needs: render
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - name: Checkout repository
