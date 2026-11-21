@@ -1,5 +1,6 @@
 import * as THREE from '../vendor/three160.module.min.js';
 import { resolvePreset } from './presets.js';
+import { createWebGLRenderer } from './webgl_renderer.js';
 
 export { THREE };
 
@@ -162,6 +163,10 @@ export function createEngine(opts = {}) {
   scene.add(root);
 
   const meshes = [];
+  let webglBackend = null;
+  if (rendererMode === 'webgl') {
+    webglBackend = createWebGLRenderer(W, H, dsf, sunDir);
+  }
 
   function addPart(parent, geo, hexColor, partOpts = {}) {
     const mat = new THREE.MeshBasicMaterial({ color: hexColor });
@@ -361,6 +366,20 @@ export function createEngine(opts = {}) {
 
     scene.updateMatrixWorld(true);
     camera.updateMatrixWorld(true);
+
+    // Optional second renderer backend (RENDERER=webgl: Three.js WebGLRenderer + SwiftShader MSAA 4x)
+    if (webglBackend) {
+      const glCanvas = webglBackend.renderScene(scene, camera, meshes, {
+        wireMix,
+        darkFactor,
+        rimHex: preset.palette.rimHex,
+      });
+      ctx.drawImage(glCanvas, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+      if (hooks && hooks.after3D) hooks.after3D(ctx, W, H);
+      return;
+    }
+
     _projMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
 
     const drawList = [];
