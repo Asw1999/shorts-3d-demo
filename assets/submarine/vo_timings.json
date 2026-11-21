@@ -1,0 +1,861 @@
+{
+  "beats": [
+    {
+      "id": "hook",
+      "start": 0.18,
+      "end": 4.503,
+      "text": "Kapal selam beratnya ribuan ton. Kok bisa tenggelam dan muncul sesuka hati?"
+    },
+    {
+      "id": "tanks",
+      "start": 4.783,
+      "end": 11.759,
+      "text": "Rahasianya bukan mesin, tapi tangki. Di sisi kiri dan kanan badan kapal, ada tangki ballast dengan katup udara."
+    },
+    {
+      "id": "dive",
+      "start": 12.039,
+      "end": 19.706,
+      "text": "Saat mau menyelam, katup di atas dibuka. Udara keluar jadi gelembung, air laut masuk mengisi tangki, lalu kapal pun turun."
+    },
+    {
+      "id": "neutral",
+      "start": 19.986,
+      "end": 27.84,
+      "text": "Di kedalaman yang diinginkan, katup ditutup lagi. Berat kapal sama dengan berat air yang digeser, jadi kapal melayang dalam apung netral."
+    },
+    {
+      "id": "surface",
+      "start": 28.12,
+      "end": 35.451,
+      "text": "Saat waktunya muncul, udara bertekanan disemprot ke tangki. Air terdorong keluar, kapal jadi ringan, lalu naik lagi ke permukaan."
+    },
+    {
+      "id": "hydroplane",
+      "start": 35.731,
+      "end": 40.888,
+      "text": "Sementara itu, sirip di menara dan ekor mengatur sudut naik turun saat kapal bergerak maju."
+    },
+    {
+      "id": "outro",
+      "start": 41.168,
+      "end": 45.08,
+      "text": "Jadi kapal selam itu bukan menyelam pakai mesin. Dia main timbangan."
+    }
+  ],
+  "words": [
+    {
+      "text": "Kapal",
+      "start": 0.18,
+      "end": 0.521,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "selam",
+      "start": 0.521,
+      "end": 0.862,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "beratnya",
+      "start": 0.862,
+      "end": 1.379,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "ribuan",
+      "start": 1.379,
+      "end": 1.872,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "ton.",
+      "start": 1.872,
+      "end": 2.048,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "Kok",
+      "start": 2.298,
+      "end": 2.461,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "bisa",
+      "start": 2.461,
+      "end": 2.765,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "tenggelam",
+      "start": 2.765,
+      "end": 3.254,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "dan",
+      "start": 3.254,
+      "end": 3.418,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "muncul",
+      "start": 3.418,
+      "end": 3.744,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "sesuka",
+      "start": 3.744,
+      "end": 4.199,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "hati?",
+      "start": 4.199,
+      "end": 4.503,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "Rahasianya",
+      "start": 4.783,
+      "end": 5.759,
+      "beat": "tanks",
+      "clause": 2
+    },
+    {
+      "text": "bukan",
+      "start": 5.759,
+      "end": 6.164,
+      "beat": "tanks",
+      "clause": 2
+    },
+    {
+      "text": "mesin,",
+      "start": 6.164,
+      "end": 6.57,
+      "beat": "tanks",
+      "clause": 2
+    },
+    {
+      "text": "tapi",
+      "start": 6.57,
+      "end": 6.96,
+      "beat": "tanks",
+      "clause": 2
+    },
+    {
+      "text": "tangki.",
+      "start": 6.96,
+      "end": 7.38,
+      "beat": "tanks",
+      "clause": 2
+    },
+    {
+      "text": "Di",
+      "start": 7.63,
+      "end": 7.79,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "sisi",
+      "start": 7.79,
+      "end": 8.111,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "kiri",
+      "start": 8.111,
+      "end": 8.432,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "dan",
+      "start": 8.432,
+      "end": 8.604,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "kanan",
+      "start": 8.604,
+      "end": 8.937,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "badan",
+      "start": 8.937,
+      "end": 9.269,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "kapal,",
+      "start": 9.269,
+      "end": 9.602,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "ada",
+      "start": 9.602,
+      "end": 9.911,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "tangki",
+      "start": 9.911,
+      "end": 10.256,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "ballast",
+      "start": 10.256,
+      "end": 10.612,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "dengan",
+      "start": 10.612,
+      "end": 10.957,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "katup",
+      "start": 10.957,
+      "end": 11.29,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "udara.",
+      "start": 11.29,
+      "end": 11.759,
+      "beat": "tanks",
+      "clause": 3
+    },
+    {
+      "text": "Saat",
+      "start": 12.039,
+      "end": 12.359,
+      "beat": "dive",
+      "clause": 4
+    },
+    {
+      "text": "mau",
+      "start": 12.359,
+      "end": 12.668,
+      "beat": "dive",
+      "clause": 4
+    },
+    {
+      "text": "menyelam,",
+      "start": 12.668,
+      "end": 13.173,
+      "beat": "dive",
+      "clause": 4
+    },
+    {
+      "text": "katup",
+      "start": 13.173,
+      "end": 13.506,
+      "beat": "dive",
+      "clause": 4
+    },
+    {
+      "text": "di",
+      "start": 13.506,
+      "end": 13.666,
+      "beat": "dive",
+      "clause": 4
+    },
+    {
+      "text": "atas",
+      "start": 13.666,
+      "end": 13.987,
+      "beat": "dive",
+      "clause": 4
+    },
+    {
+      "text": "dibuka.",
+      "start": 13.987,
+      "end": 14.468,
+      "beat": "dive",
+      "clause": 4
+    },
+    {
+      "text": "Udara",
+      "start": 14.718,
+      "end": 15.211,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "keluar",
+      "start": 15.211,
+      "end": 15.716,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "jadi",
+      "start": 15.716,
+      "end": 16.054,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "gelembung,",
+      "start": 16.054,
+      "end": 16.597,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "air",
+      "start": 16.597,
+      "end": 16.921,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "laut",
+      "start": 16.921,
+      "end": 17.259,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "masuk",
+      "start": 17.259,
+      "end": 17.608,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "mengisi",
+      "start": 17.608,
+      "end": 18.126,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "tangki,",
+      "start": 18.126,
+      "end": 18.489,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "lalu",
+      "start": 18.489,
+      "end": 18.826,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "kapal",
+      "start": 18.826,
+      "end": 19.175,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "pun",
+      "start": 19.175,
+      "end": 19.357,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "turun.",
+      "start": 19.357,
+      "end": 19.706,
+      "beat": "dive",
+      "clause": 5
+    },
+    {
+      "text": "Di",
+      "start": 19.986,
+      "end": 20.136,
+      "beat": "neutral",
+      "clause": 6
+    },
+    {
+      "text": "kedalaman",
+      "start": 20.136,
+      "end": 20.749,
+      "beat": "neutral",
+      "clause": 6
+    },
+    {
+      "text": "yang",
+      "start": 20.749,
+      "end": 20.922,
+      "beat": "neutral",
+      "clause": 6
+    },
+    {
+      "text": "diinginkan,",
+      "start": 20.922,
+      "end": 21.546,
+      "beat": "neutral",
+      "clause": 6
+    },
+    {
+      "text": "katup",
+      "start": 21.546,
+      "end": 21.858,
+      "beat": "neutral",
+      "clause": 6
+    },
+    {
+      "text": "ditutup",
+      "start": 21.858,
+      "end": 22.32,
+      "beat": "neutral",
+      "clause": 6
+    },
+    {
+      "text": "lagi.",
+      "start": 22.32,
+      "end": 22.621,
+      "beat": "neutral",
+      "clause": 6
+    },
+    {
+      "text": "Berat",
+      "start": 22.87,
+      "end": 23.214,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "kapal",
+      "start": 23.214,
+      "end": 23.557,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "sama",
+      "start": 23.557,
+      "end": 23.888,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "dengan",
+      "start": 23.888,
+      "end": 24.243,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "berat",
+      "start": 24.243,
+      "end": 24.586,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "air",
+      "start": 24.586,
+      "end": 24.905,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "yang",
+      "start": 24.905,
+      "end": 25.095,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "digeser,",
+      "start": 25.095,
+      "end": 25.604,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "jadi",
+      "start": 25.604,
+      "end": 25.934,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "kapal",
+      "start": 25.934,
+      "end": 26.278,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "melayang",
+      "start": 26.278,
+      "end": 26.798,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "dalam",
+      "start": 26.798,
+      "end": 27.142,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "apung",
+      "start": 27.142,
+      "end": 27.485,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "netral.",
+      "start": 27.485,
+      "end": 27.84,
+      "beat": "neutral",
+      "clause": 7
+    },
+    {
+      "text": "Saat",
+      "start": 28.12,
+      "end": 28.432,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "waktunya",
+      "start": 28.432,
+      "end": 28.923,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "muncul,",
+      "start": 28.923,
+      "end": 29.257,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "udara",
+      "start": 29.257,
+      "end": 29.713,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "bertekanan",
+      "start": 29.713,
+      "end": 30.36,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "disemprot",
+      "start": 30.36,
+      "end": 30.862,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "ke",
+      "start": 30.862,
+      "end": 31.018,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "tangki.",
+      "start": 31.018,
+      "end": 31.353,
+      "beat": "surface",
+      "clause": 8
+    },
+    {
+      "text": "Air",
+      "start": 31.602,
+      "end": 31.894,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "terdorong",
+      "start": 31.894,
+      "end": 32.381,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "keluar,",
+      "start": 32.381,
+      "end": 32.835,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "kapal",
+      "start": 32.835,
+      "end": 33.149,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "jadi",
+      "start": 33.149,
+      "end": 33.451,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "ringan,",
+      "start": 33.451,
+      "end": 33.776,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "lalu",
+      "start": 33.776,
+      "end": 34.079,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "naik",
+      "start": 34.079,
+      "end": 34.381,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "lagi",
+      "start": 34.381,
+      "end": 34.684,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "ke",
+      "start": 34.684,
+      "end": 34.835,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "permukaan.",
+      "start": 34.835,
+      "end": 35.451,
+      "beat": "surface",
+      "clause": 9
+    },
+    {
+      "text": "Sementara",
+      "start": 35.731,
+      "end": 36.355,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "itu,",
+      "start": 36.355,
+      "end": 36.65,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "sirip",
+      "start": 36.65,
+      "end": 36.968,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "di",
+      "start": 36.968,
+      "end": 37.121,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "menara",
+      "start": 37.121,
+      "end": 37.58,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "dan",
+      "start": 37.58,
+      "end": 37.745,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "ekor",
+      "start": 37.745,
+      "end": 38.051,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "mengatur",
+      "start": 38.051,
+      "end": 38.534,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "sudut",
+      "start": 38.534,
+      "end": 38.851,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "naik",
+      "start": 38.851,
+      "end": 39.158,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "turun",
+      "start": 39.158,
+      "end": 39.475,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "saat",
+      "start": 39.475,
+      "end": 39.782,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "kapal",
+      "start": 39.782,
+      "end": 40.099,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "bergerak",
+      "start": 40.099,
+      "end": 40.582,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "maju.",
+      "start": 40.582,
+      "end": 40.888,
+      "beat": "hydroplane",
+      "clause": 10
+    },
+    {
+      "text": "Jadi",
+      "start": 41.168,
+      "end": 41.429,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "kapal",
+      "start": 41.429,
+      "end": 41.7,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "selam",
+      "start": 41.7,
+      "end": 41.972,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "itu",
+      "start": 41.972,
+      "end": 42.223,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "bukan",
+      "start": 42.223,
+      "end": 42.494,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "menyelam",
+      "start": 42.494,
+      "end": 42.906,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "pakai",
+      "start": 42.906,
+      "end": 43.288,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "mesin.",
+      "start": 43.288,
+      "end": 43.559,
+      "beat": "outro",
+      "clause": 11
+    },
+    {
+      "text": "Dia",
+      "start": 43.809,
+      "end": 44.151,
+      "beat": "outro",
+      "clause": 12
+    },
+    {
+      "text": "main",
+      "start": 44.151,
+      "end": 44.507,
+      "beat": "outro",
+      "clause": 12
+    },
+    {
+      "text": "timbangan.",
+      "start": 44.507,
+      "end": 45.08,
+      "beat": "outro",
+      "clause": 12
+    }
+  ],
+  "total_duration": 47.029
+}

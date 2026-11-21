@@ -1,0 +1,89 @@
+[
+  {
+    "id": "hook",
+    "clauses": [
+      {
+        "tts": "Kapal selam beratnya ribuan ton.",
+        "caption": "Kapal selam beratnya ribuan ton."
+      },
+      {
+        "tts": "Kok bisa tenggelam dan muncul sesuka hati?",
+        "caption": "Kok bisa tenggelam dan muncul sesuka hati?"
+      }
+    ]
+  },
+  {
+    "id": "tanks",
+    "clauses": [
+      {
+        "tts": "Rahasianya bukan mesin, tapi tangki.",
+        "caption": "Rahasianya bukan mesin, tapi tangki."
+      },
+      {
+        "tts": "Di sisi kiri dan kanan badan kapal, ada tangki ballast dengan katup udara.",
+        "caption": "Di sisi kiri dan kanan badan kapal, ada tangki ballast dengan katup udara."
+      }
+    ]
+  },
+  {
+    "id": "dive",
+    "clauses": [
+      {
+        "tts": "Saat mau menyelam, katup di atas dibuka.",
+        "caption": "Saat mau menyelam, katup di atas dibuka."
+      },
+      {
+        "tts": "Udara keluar jadi gelembung, air laut masuk mengisi tangki, lalu kapal pun turun.",
+        "caption": "Udara keluar jadi gelembung, air laut masuk mengisi tangki, lalu kapal pun turun."
+      }
+    ]
+  },
+  {
+    "id": "neutral",
+    "clauses": [
+      {
+        "tts": "Di kedalaman yang diinginkan, katup ditutup lagi.",
+        "caption": "Di kedalaman yang diinginkan, katup ditutup lagi."
+      },
+      {
+        "tts": "Berat kapal sama dengan berat air yang digeser, jadi kapal melayang dalam apung netral.",
+        "caption": "Berat kapal sama dengan berat air yang digeser, jadi kapal melayang dalam apung netral."
+      }
+    ]
+  },
+  {
+    "id": "surface",
+    "clauses": [
+      {
+        "tts": "Saat waktunya muncul, udara bertekanan disemprot ke tangki.",
+        "caption": "Saat waktunya muncul, udara bertekanan disemprot ke tangki."
+      },
+      {
+        "tts": "Air terdorong keluar, kapal jadi ringan, lalu naik lagi ke permukaan.",
+        "caption": "Air terdorong keluar, kapal jadi ringan, lalu naik lagi ke permukaan."
+      }
+    ]
+  },
+  {
+    "id": "hydroplane",
+    "clauses": [
+      {
+        "tts": "Sementara itu, sirip di menara dan ekor mengatur sudut naik turun saat kapal bergerak maju.",
+        "caption": "Sementara itu, sirip di menara dan ekor mengatur sudut naik turun saat kapal bergerak maju."
+      }
+    ]
+  },
+  {
+    "id": "outro",
+    "clauses": [
+      {
+        "tts": "Jadi kapal selam itu bukan menyelam pakai mesin.",
+        "caption": "Jadi kapal selam itu bukan menyelam pakai mesin."
+      },
+      {
+        "tts": "Dia main timbangan.",
+        "caption": "Dia main timbangan."
+      }
+    ]
+  }
+]

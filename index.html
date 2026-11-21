@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>3D Explainer Shorts Engine</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 720px;
+      height: 1280px;
+      overflow: hidden;
+      background: #092e6b;
+      font-family: 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif;
+      color: #f0f4fc;
+    }
+    #stage {
+      position: relative;
+      width: 720px;
+      height: 1280px;
+      overflow: hidden;
+    }
+    .bg-layer {
+      position: absolute;
+      inset: 0;
+    }
+    #c2d {
+      position: absolute;
+      inset: 0;
+      width: 720px;
+      height: 1280px;
+      display: block;
+    }
+    #flash-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 38% 54%, rgba(255, 208, 86, 0.38), transparent 54%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    #hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* Top pill badge (>=36px scaled at 1080w) */
+    #top-pill {
+      position: absolute;
+      top: 42px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 24px 10px 18px;
+      border-radius: 999px;
+      background: rgba(14, 17, 24, 0.72);
+      border: 2.5px solid rgba(255, 212, 59, 0.65);
+      color: rgba(255, 255, 255, 0.96);
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    }
+    #pill-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #ffd43b;
+      box-shadow: 0 0 8px rgba(255, 212, 59, 0.9);
+      flex-shrink: 0;
+    }
+    #pill-dot.firing,
+    #pill-dot.alert {
+      background: #ff6238;
+      box-shadow: 0 0 11px #ff6238;
+    }
+    #pill-dot.active-cool {
+      background: #45d6ff;
+      box-shadow: 0 0 11px #45d6ff;
+    }
+
+    /* Oversized floating comic callout tags (>=36px at 1080w -> >=24px at 720w) */
+    .callout {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fffdf5;
+      border: 3.5px solid #0e1118;
+      border-radius: 14px;
+      padding: 9px 18px 9px 14px;
+      color: #0e1118;
+      font-weight: 900;
+      font-size: 27px;
+      letter-spacing: 0.4px;
+      box-shadow: 0 6px 0 #0e1118, 0 12px 20px rgba(0, 0, 0, 0.40);
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .callout::before {
+      content: "";
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #ffd43b;
+      border: 3px solid #0e1118;
+      flex-shrink: 0;
+    }
+
+    /* Full-clause captions at ~69% screen height (65-72% safe zone) with semi-transparent backing pill */
+    #caption-wrap {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 69%;
+      bottom: auto;
+      transform: translateY(-50%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      pointer-events: none;
+    }
+    .caption-box {
+      display: inline-block;
+      max-width: 684px;
+      padding: 10px 18px;
+      border-radius: 20px;
+      background: rgba(12, 15, 23, 0.42);
+      font-size: 38px;
+      font-weight: 900;
+      line-height: 1.24;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      -webkit-text-stroke: 8px #0d1017;
+      paint-order: stroke fill;
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.72));
+      transform-origin: 50% 50%;
+    }
+    .caption-box .w {
+      display: inline-block;
+      padding: 0 6px;
+      margin: 0 3.5px;
+      color: #ffffff;
+      -webkit-text-stroke: 8px #0d1017;
+      paint-order: stroke fill;
+      transform-origin: 50% 75%;
+      white-space: nowrap;
+    }
+    .caption-box .w.active {
+      color: #ffd43b;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="bg-layer-0" class="bg-layer"></div>
+    <div id="bg-layer-1" class="bg-layer"></div>
+    <div id="bg-layer-2" class="bg-layer"></div>
+    <canvas id="c2d" width="1080" height="1920"></canvas>
+    <div id="flash-overlay"></div>
+
+    <svg id="hud" viewBox="0 0 720 1280">
+      <g id="reticle" opacity="0" stroke="#7ec8ff" fill="none" stroke-width="2">
+        <circle cx="360" cy="600" r="225" stroke-dasharray="12 10" />
+        <circle cx="360" cy="600" r="152" stroke-dasharray="4 8" />
+        <line x1="100" y1="600" x2="188" y2="600" />
+        <line x1="532" y1="600" x2="620" y2="600" />
+        <line x1="360" y1="345" x2="360" y2="415" />
+        <line x1="360" y1="785" x2="360" y2="855" />
+      </g>
+      <g id="leader-lines" stroke="#ffd43b" stroke-width="3.4" fill="none" stroke-linecap="round">
+        <line id="line-a" x1="0" y1="0" x2="0" y2="0" opacity="0" />
+        <line id="line-b" x1="0" y1="0" x2="0" y2="0" opacity="0" />
+        <line id="line-c" x1="0" y1="0" x2="0" y2="0" opacity="0" />
+        <circle id="dot-a" cx="0" cy="0" r="6" fill="#ffd43b" stroke="#0e1118" stroke-width="2.6" opacity="0" />
+        <circle id="dot-b" cx="0" cy="0" r="6" fill="#ffd43b" stroke="#0e1118" stroke-width="2.6" opacity="0" />
+        <circle id="dot-c" cx="0" cy="0" r="6" fill="#ffd43b" stroke="#0e1118" stroke-width="2.6" opacity="0" />
+      </g>
+    </svg>
+
+    <div id="top-pill"><span id="pill-dot"></span><span id="pill-text"></span></div>
+
+    <div id="lbl-a" class="callout"></div>
+    <div id="lbl-b" class="callout"></div>
+    <div id="lbl-c" class="callout"></div>
+
+    <div id="caption-wrap">
+      <div id="caption" class="caption-box"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createEngine } from './engine/core.js';
+
+    const params = new URLSearchParams(window.location.search);
+    const scenarioName = params.get('scenario') || 'a10';
+    const timingsUrl = params.get('timings') || './out/vo_timings.json';
+    const dsf = Number(params.get('dsf') || 1.5);
+
+    const engine = createEngine({ fps: 24, dsf });
+    const scenarioModule = await import(`./scenarios/${scenarioName}.js`);
+    await engine.mountScenario(scenarioModule, timingsUrl);
+  </script>
+</body>
+</html>

@@ -1,0 +1,884 @@
+{
+  "beats": [
+    {
+      "id": "hook",
+      "start": 0.18,
+      "end": 11.436,
+      "text": "Biasanya, insinyur bikin badan pesawatnya dulu, baru mikir senjatanya dipasang di mana. Tapi pesawat tempur ini kebalik! Meriam raksasanya dibuat duluan, baru pesawatnya dirakit mengelilingi meriam itu."
+    },
+    {
+      "id": "assemble",
+      "start": 11.716,
+      "end": 21.777,
+      "text": "Jadi gini ceritanya. Inilah A-10 Warthog! Di hidungnya ada meriam putar GAU-8 kaliber 30 milimeter, yang memuntahkan 3.900 peluru per menit."
+    },
+    {
+      "id": "recoil",
+      "start": 22.057,
+      "end": 32.492,
+      "text": "Masalahnya, tendangan balik meriam ini lebih kuat dari satu mesin jetnya. Supaya pesawat nggak melintir waktu nembak, meriamnya dipasang persis di garis tengah, dan roda depannya terpaksa digeser ke kanan."
+    },
+    {
+      "id": "igniter_tub",
+      "start": 32.772,
+      "end": 43.355,
+      "text": "Belum selesai! Asap meriamnya bisa bikin mesin jet mati di udara, jadi pemantik mesin otomatis menyala tiap pelatuk ditekan. Pilotnya pun duduk di dalam bak mandi titanium 550 kilogram."
+    },
+    {
+      "id": "outro",
+      "start": 43.635,
+      "end": 48.8,
+      "text": "Hasilnya, ini bukan pesawat yang bawa senjata, tapi meriam terbang yang kebetulan dikasih sayap."
+    }
+  ],
+  "words": [
+    {
+      "text": "Biasanya,",
+      "start": 0.18,
+      "end": 0.788,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "insinyur",
+      "start": 0.788,
+      "end": 1.267,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "bikin",
+      "start": 1.267,
+      "end": 1.583,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "badan",
+      "start": 1.583,
+      "end": 1.898,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "pesawatnya",
+      "start": 1.898,
+      "end": 2.529,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "dulu,",
+      "start": 2.529,
+      "end": 2.833,
+      "beat": "hook",
+      "clause": 0
+    },
+    {
+      "text": "baru",
+      "start": 3.033,
+      "end": 3.296,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "mikir",
+      "start": 3.296,
+      "end": 3.568,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "senjatanya",
+      "start": 3.568,
+      "end": 4.113,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "dipasang",
+      "start": 4.113,
+      "end": 4.526,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "di",
+      "start": 4.526,
+      "end": 4.658,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "mana.",
+      "start": 4.658,
+      "end": 4.92,
+      "beat": "hook",
+      "clause": 1
+    },
+    {
+      "text": "Tapi",
+      "start": 5.17,
+      "end": 5.464,
+      "beat": "hook",
+      "clause": 2
+    },
+    {
+      "text": "pesawat",
+      "start": 5.464,
+      "end": 5.915,
+      "beat": "hook",
+      "clause": 2
+    },
+    {
+      "text": "tempur",
+      "start": 5.915,
+      "end": 6.23,
+      "beat": "hook",
+      "clause": 2
+    },
+    {
+      "text": "ini",
+      "start": 6.23,
+      "end": 6.513,
+      "beat": "hook",
+      "clause": 2
+    },
+    {
+      "text": "kebalik!",
+      "start": 6.513,
+      "end": 6.964,
+      "beat": "hook",
+      "clause": 2
+    },
+    {
+      "text": "Meriam",
+      "start": 7.214,
+      "end": 7.604,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "raksasanya",
+      "start": 7.604,
+      "end": 8.144,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "dibuat",
+      "start": 8.144,
+      "end": 8.535,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "duluan,",
+      "start": 8.535,
+      "end": 8.925,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "baru",
+      "start": 8.925,
+      "end": 9.185,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "pesawatnya",
+      "start": 9.185,
+      "end": 9.725,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "dirakit",
+      "start": 9.725,
+      "end": 10.125,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "mengelilingi",
+      "start": 10.125,
+      "end": 10.795,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "meriam",
+      "start": 10.795,
+      "end": 11.186,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "itu.",
+      "start": 11.186,
+      "end": 11.436,
+      "beat": "hook",
+      "clause": 3
+    },
+    {
+      "text": "Jadi",
+      "start": 11.716,
+      "end": 11.999,
+      "beat": "assemble",
+      "clause": 4
+    },
+    {
+      "text": "gini",
+      "start": 11.999,
+      "end": 12.281,
+      "beat": "assemble",
+      "clause": 4
+    },
+    {
+      "text": "ceritanya.",
+      "start": 12.281,
+      "end": 12.856,
+      "beat": "assemble",
+      "clause": 4
+    },
+    {
+      "text": "Inilah",
+      "start": 13.106,
+      "end": 13.651,
+      "beat": "assemble",
+      "clause": 5
+    },
+    {
+      "text": "A-10",
+      "start": 13.651,
+      "end": 14.309,
+      "beat": "assemble",
+      "clause": 5
+    },
+    {
+      "text": "Warthog!",
+      "start": 14.309,
+      "end": 14.713,
+      "beat": "assemble",
+      "clause": 5
+    },
+    {
+      "text": "Di",
+      "start": 14.963,
+      "end": 15.123,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "hidungnya",
+      "start": 15.123,
+      "end": 15.64,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "ada",
+      "start": 15.64,
+      "end": 15.949,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "meriam",
+      "start": 15.949,
+      "end": 16.43,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "putar",
+      "start": 16.43,
+      "end": 16.763,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "GAU-8",
+      "start": 16.763,
+      "end": 17.288,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "kaliber",
+      "start": 17.288,
+      "end": 17.781,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "30",
+      "start": 17.781,
+      "end": 18.214,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "milimeter,",
+      "start": 18.214,
+      "end": 18.868,
+      "beat": "assemble",
+      "clause": 6
+    },
+    {
+      "text": "yang",
+      "start": 19.068,
+      "end": 19.252,
+      "beat": "assemble",
+      "clause": 7
+    },
+    {
+      "text": "memuntahkan",
+      "start": 19.252,
+      "end": 19.928,
+      "beat": "assemble",
+      "clause": 7
+    },
+    {
+      "text": "3.900",
+      "start": 19.928,
+      "end": 20.793,
+      "beat": "assemble",
+      "clause": 7
+    },
+    {
+      "text": "peluru",
+      "start": 20.793,
+      "end": 21.273,
+      "beat": "assemble",
+      "clause": 7
+    },
+    {
+      "text": "per",
+      "start": 21.273,
+      "end": 21.445,
+      "beat": "assemble",
+      "clause": 7
+    },
+    {
+      "text": "menit.",
+      "start": 21.445,
+      "end": 21.777,
+      "beat": "assemble",
+      "clause": 7
+    },
+    {
+      "text": "Masalahnya,",
+      "start": 22.057,
+      "end": 22.804,
+      "beat": "recoil",
+      "clause": 8
+    },
+    {
+      "text": "tendangan",
+      "start": 23.004,
+      "end": 23.405,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "balik",
+      "start": 23.405,
+      "end": 23.663,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "meriam",
+      "start": 23.663,
+      "end": 24.037,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "ini",
+      "start": 24.037,
+      "end": 24.276,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "lebih",
+      "start": 24.276,
+      "end": 24.535,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "kuat",
+      "start": 24.535,
+      "end": 24.783,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "dari",
+      "start": 24.783,
+      "end": 25.032,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "satu",
+      "start": 25.032,
+      "end": 25.281,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "mesin",
+      "start": 25.281,
+      "end": 25.539,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "jetnya.",
+      "start": 25.539,
+      "end": 25.807,
+      "beat": "recoil",
+      "clause": 9
+    },
+    {
+      "text": "Supaya",
+      "start": 26.057,
+      "end": 26.443,
+      "beat": "recoil",
+      "clause": 10
+    },
+    {
+      "text": "pesawat",
+      "start": 26.443,
+      "end": 26.838,
+      "beat": "recoil",
+      "clause": 10
+    },
+    {
+      "text": "nggak",
+      "start": 26.838,
+      "end": 26.996,
+      "beat": "recoil",
+      "clause": 10
+    },
+    {
+      "text": "melintir",
+      "start": 26.996,
+      "end": 27.401,
+      "beat": "recoil",
+      "clause": 10
+    },
+    {
+      "text": "waktu",
+      "start": 27.401,
+      "end": 27.667,
+      "beat": "recoil",
+      "clause": 10
+    },
+    {
+      "text": "nembak,",
+      "start": 27.667,
+      "end": 27.944,
+      "beat": "recoil",
+      "clause": 10
+    },
+    {
+      "text": "meriamnya",
+      "start": 28.144,
+      "end": 28.686,
+      "beat": "recoil",
+      "clause": 11
+    },
+    {
+      "text": "dipasang",
+      "start": 28.686,
+      "end": 29.106,
+      "beat": "recoil",
+      "clause": 11
+    },
+    {
+      "text": "persis",
+      "start": 29.106,
+      "end": 29.392,
+      "beat": "recoil",
+      "clause": 11
+    },
+    {
+      "text": "di",
+      "start": 29.392,
+      "end": 29.525,
+      "beat": "recoil",
+      "clause": 11
+    },
+    {
+      "text": "garis",
+      "start": 29.525,
+      "end": 29.801,
+      "beat": "recoil",
+      "clause": 11
+    },
+    {
+      "text": "tengah,",
+      "start": 29.801,
+      "end": 30.087,
+      "beat": "recoil",
+      "clause": 11
+    },
+    {
+      "text": "dan",
+      "start": 30.287,
+      "end": 30.44,
+      "beat": "recoil",
+      "clause": 12
+    },
+    {
+      "text": "roda",
+      "start": 30.44,
+      "end": 30.724,
+      "beat": "recoil",
+      "clause": 12
+    },
+    {
+      "text": "depannya",
+      "start": 30.724,
+      "end": 31.171,
+      "beat": "recoil",
+      "clause": 12
+    },
+    {
+      "text": "terpaksa",
+      "start": 31.171,
+      "end": 31.618,
+      "beat": "recoil",
+      "clause": 12
+    },
+    {
+      "text": "digeser",
+      "start": 31.618,
+      "end": 32.055,
+      "beat": "recoil",
+      "clause": 12
+    },
+    {
+      "text": "ke",
+      "start": 32.055,
+      "end": 32.197,
+      "beat": "recoil",
+      "clause": 12
+    },
+    {
+      "text": "kanan.",
+      "start": 32.197,
+      "end": 32.492,
+      "beat": "recoil",
+      "clause": 12
+    },
+    {
+      "text": "Belum",
+      "start": 32.772,
+      "end": 33.03,
+      "beat": "igniter_tub",
+      "clause": 13
+    },
+    {
+      "text": "selesai!",
+      "start": 33.03,
+      "end": 33.519,
+      "beat": "igniter_tub",
+      "clause": 13
+    },
+    {
+      "text": "Asap",
+      "start": 33.769,
+      "end": 34.029,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "meriamnya",
+      "start": 34.029,
+      "end": 34.56,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "bisa",
+      "start": 34.56,
+      "end": 34.821,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "bikin",
+      "start": 34.821,
+      "end": 35.091,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "mesin",
+      "start": 35.091,
+      "end": 35.361,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "jet",
+      "start": 35.361,
+      "end": 35.501,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "mati",
+      "start": 35.501,
+      "end": 35.761,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "di",
+      "start": 35.761,
+      "end": 35.892,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "udara,",
+      "start": 35.892,
+      "end": 36.273,
+      "beat": "igniter_tub",
+      "clause": 14
+    },
+    {
+      "text": "jadi",
+      "start": 36.473,
+      "end": 36.741,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "pemantik",
+      "start": 36.741,
+      "end": 37.163,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "mesin",
+      "start": 37.163,
+      "end": 37.441,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "otomatis",
+      "start": 37.441,
+      "end": 37.977,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "menyala",
+      "start": 37.977,
+      "end": 38.389,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "tiap",
+      "start": 38.389,
+      "end": 38.657,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "pelatuk",
+      "start": 38.657,
+      "end": 39.069,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "ditekan.",
+      "start": 39.069,
+      "end": 39.481,
+      "beat": "igniter_tub",
+      "clause": 15
+    },
+    {
+      "text": "Pilotnya",
+      "start": 39.731,
+      "end": 40.212,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "pun",
+      "start": 40.212,
+      "end": 40.376,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "duduk",
+      "start": 40.376,
+      "end": 40.693,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "di",
+      "start": 40.693,
+      "end": 40.846,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "dalam",
+      "start": 40.846,
+      "end": 41.163,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "bak",
+      "start": 41.163,
+      "end": 41.327,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "mandi",
+      "start": 41.327,
+      "end": 41.644,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "titanium",
+      "start": 41.644,
+      "end": 42.255,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "550",
+      "start": 42.255,
+      "end": 42.874,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "kilogram.",
+      "start": 42.874,
+      "end": 43.355,
+      "beat": "igniter_tub",
+      "clause": 16
+    },
+    {
+      "text": "Hasilnya,",
+      "start": 43.635,
+      "end": 44.289,
+      "beat": "outro",
+      "clause": 17
+    },
+    {
+      "text": "ini",
+      "start": 44.489,
+      "end": 44.722,
+      "beat": "outro",
+      "clause": 18
+    },
+    {
+      "text": "bukan",
+      "start": 44.722,
+      "end": 44.973,
+      "beat": "outro",
+      "clause": 18
+    },
+    {
+      "text": "pesawat",
+      "start": 44.973,
+      "end": 45.344,
+      "beat": "outro",
+      "clause": 18
+    },
+    {
+      "text": "yang",
+      "start": 45.344,
+      "end": 45.483,
+      "beat": "outro",
+      "clause": 18
+    },
+    {
+      "text": "bawa",
+      "start": 45.483,
+      "end": 45.725,
+      "beat": "outro",
+      "clause": 18
+    },
+    {
+      "text": "senjata,",
+      "start": 45.725,
+      "end": 46.096,
+      "beat": "outro",
+      "clause": 18
+    },
+    {
+      "text": "tapi",
+      "start": 46.296,
+      "end": 46.581,
+      "beat": "outro",
+      "clause": 19
+    },
+    {
+      "text": "meriam",
+      "start": 46.581,
+      "end": 47.007,
+      "beat": "outro",
+      "clause": 19
+    },
+    {
+      "text": "terbang",
+      "start": 47.007,
+      "end": 47.324,
+      "beat": "outro",
+      "clause": 19
+    },
+    {
+      "text": "yang",
+      "start": 47.324,
+      "end": 47.487,
+      "beat": "outro",
+      "clause": 19
+    },
+    {
+      "text": "kebetulan",
+      "start": 47.487,
+      "end": 48.067,
+      "beat": "outro",
+      "clause": 19
+    },
+    {
+      "text": "dikasih",
+      "start": 48.067,
+      "end": 48.505,
+      "beat": "outro",
+      "clause": 19
+    },
+    {
+      "text": "sayap.",
+      "start": 48.505,
+      "end": 48.8,
+      "beat": "outro",
+      "clause": 19
+    }
+  ],
+  "total_duration": 50.749
+}

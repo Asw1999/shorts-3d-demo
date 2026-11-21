@@ -1,0 +1,17 @@
+# Outputs & temporary renders
+out/
+out_*/
+*.mp4
+*.wav
+*.tmp*
+*.log
+
+# Backups & local experiments
+*.bak*
+spike_webgl.html
+
+# Dependencies & caches
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store

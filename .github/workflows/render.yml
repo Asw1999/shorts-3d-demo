@@ -1,0 +1,132 @@
+name: Render 3D Shorts
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Scenario name (e.g. submarine, a10)'
+        required: true
+        default: 'submarine'
+        type: string
+      shards:
+        description: 'Number of parallel render shards'
+        required: true
+        default: '3'
+        type: string
+
+concurrency:
+  group: render-${{ inputs.scenario || 'submarine' }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.make.outputs.matrix }}
+    steps:
+      - name: Build shard matrix
+        id: make
+        run: |
+          N="${{ inputs.shards }}"
+          if ! [[ "$N" =~ ^[0-9]+$ ]] || [ "$N" -lt 1 ] || [ "$N" -gt 12 ]; then
+            echo "Invalid shards=$N (must be 1..12)" >&2
+            exit 1
+          fi
+          JSON=$(node -e "console.log(JSON.stringify(Array.from({length: Number(process.argv[1])}, (_, i) => i + 1)))" "$N")
+          echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
+          echo "Shard matrix: $JSON"
+
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-chromium-1.52.0-${{ runner.os }}-${{ hashFiles('cloud/setup.sh') }}
+
+      - name: Run cloud setup
+        run: bash cloud/setup.sh
+
+      - name: Render shard ${{ matrix.shard }}/${{ inputs.shards }}
+        env:
+          SCENARIO: ${{ inputs.scenario }}
+          ASSETS_DIR: assets/${{ inputs.scenario }}
+          OUT_DIR: out_cloud
+          SHARDS: ${{ inputs.shards }}
+          DSF: '1.5'
+        run: |
+          node render.mjs --shard "${{ matrix.shard }}/${{ inputs.shards }}"
+
+      - name: Upload shard segment and metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}
+          path: |
+            out_cloud/shards/seg_${{ matrix.shard }}.mp4
+            out_cloud/shards/metrics_${{ matrix.shard }}.json
+          retention-days: 1
+          if-no-files-found: error
+
+  mux:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Ensure FFmpeg installed
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
+
+      - name: Download all shard artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          path: out_cloud/shards
+          merge-multiple: true
+
+      - name: Mux shards with audio
+        env:
+          SCENARIO: ${{ inputs.scenario }}
+          ASSETS_DIR: assets/${{ inputs.scenario }}
+          OUT_DIR: out_cloud
+          SHARDS: ${{ inputs.shards }}
+          OUTPUT_MP4: demo_${{ inputs.scenario }}.mp4
+        run: |
+          node mux.mjs
+          cat out_cloud/metrics.json
+
+      - name: Upload final video and metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: video
+          path: |
+            out_cloud/demo_${{ inputs.scenario }}.mp4
+            out_cloud/metrics.json
+          retention-days: 1
+          if-no-files-found: error
