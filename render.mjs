@@ -305,21 +305,22 @@ async function renderSegment({
   try { fs.rmSync(profDir, { recursive: true, force: true }); } catch {}
   fs.mkdirSync(profDir, { recursive: true });
 
-  const chrome = spawn(
-    chromeBin,
-    [
-      '--headless=new',
-      '--no-sandbox',
-      '--disable-gpu',
-      '--enable-unsafe-swiftshader',
-      '--disable-dev-shm-usage',
-      `--remote-debugging-port=${cdpPort}`,
-      `--user-data-dir=${profDir}`,
-      '--window-size=720,1280',
-      'about:blank',
-    ],
-    { stdio: ['ignore', 'ignore', 'pipe'] }
-  );
+  const chromeArgs = [
+    '--headless=new',
+    '--no-sandbox',
+    '--disable-dev-shm-usage',
+    `--remote-debugging-port=${cdpPort}`,
+    `--user-data-dir=${profDir}`,
+    '--window-size=720,1280',
+  ];
+  if (renderer === 'webgl') {
+    chromeArgs.push('--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist');
+  } else {
+    chromeArgs.push('--disable-gpu', '--enable-unsafe-swiftshader');
+  }
+  chromeArgs.push('about:blank');
+
+  const chrome = spawn(chromeBin, chromeArgs, { stdio: ['ignore', 'ignore', 'pipe'] });
 
   let chromeErr = '';
   chrome.stderr.on('data', (d) => { chromeErr += d.toString(); });

@@ -1,5 +1,6 @@
 import * as THREE from '../vendor/three160.module.min.js';
 import { resolvePreset } from './presets.js';
+import { createWebGLRenderer } from './webgl_renderer.js';
 
 export { THREE };
 
@@ -162,6 +163,10 @@ export function createEngine(opts = {}) {
   scene.add(root);
 
   const meshes = [];
+  let webglBackend = null;
+  if (rendererMode === 'webgl') {
+    webglBackend = createWebGLRenderer(W, H, dsf, sunDir);
+  }
 
   function addPart(parent, geo, hexColor, partOpts = {}) {
     const mat = new THREE.MeshBasicMaterial({ color: hexColor });
@@ -361,6 +366,40 @@ export function createEngine(opts = {}) {
 
     scene.updateMatrixWorld(true);
     camera.updateMatrixWorld(true);
+
+    // Optional second renderer backend (RENDERER=webgl: Three.js WebGLRenderer + SwiftShader MSAA 4x)
+    if (webglBackend) {
+      const glCanvas = webglBackend.renderScene(scene, camera, meshes, {
+        wireMix,
+        darkFactor,
+        rimHex: preset.palette.rimHex,
+      });
+      ctx.drawImage(glCanvas, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+      if (hooks && hooks.after3D) hooks.after3D(ctx, W, H);
+      // Populate lightweight silhouette edge hints for automated contrast verification
+      _projMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      lastSilhouetteEdges = [];
+      for (const m of meshes) {
+        if (!isVisibleInHierarchy(m)) continue;
+        const ud = m.userData;
+        if (ud.excludeFromBounds || ud.noOutline || ud.alpha < 0.92) continue;
+        const pos = m.geometry.attributes.position;
+        const step = Math.max(1, Math.floor(pos.count / 12));
+        let prev = null;
+        for (let i = 0; i < pos.count; i += step) {
+          _p.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld).applyMatrix4(_projMat);
+          const sx = (_p.x * 0.5 + 0.5) * W;
+          const sy = (-_p.y * 0.5 + 0.5) * H;
+          if (prev && sx > 24 && sx < W - 24 && sy > 195 && sy < 800) {
+            lastSilhouetteEdges.push([prev[0], prev[1], sx, sy]);
+          }
+          prev = [sx, sy];
+        }
+      }
+      return;
+    }
+
     _projMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
 
     const drawList = [];

@@ -129,11 +129,20 @@ async function captureFrameRange(chromeBin, port, scenario, dsf, startF, endF, c
   try { fs.rmSync(profDir, { recursive: true, force: true }); } catch {}
   fs.mkdirSync(profDir, { recursive: true });
 
-  const ch = spawn(chromeBin, [
-    '--headless=new', '--no-sandbox', '--disable-gpu', '--enable-unsafe-swiftshader',
-    '--disable-dev-shm-usage', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profDir}`,
-    '--window-size=720,1280', 'about:blank',
-  ], { stdio: 'ignore' });
+  const rendererMode = (process.env.RENDERER || 'canvas2d').toLowerCase();
+  const chromeArgs = [
+    '--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+    `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profDir}`,
+    '--window-size=720,1280',
+  ];
+  if (rendererMode === 'webgl') {
+    chromeArgs.push('--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist');
+  } else {
+    chromeArgs.push('--disable-gpu', '--enable-unsafe-swiftshader');
+  }
+  chromeArgs.push('about:blank');
+
+  const ch = spawn(chromeBin, chromeArgs, { stdio: 'ignore' });
 
   try {
     const wsUrl = await waitForCdp(cdpPort);
