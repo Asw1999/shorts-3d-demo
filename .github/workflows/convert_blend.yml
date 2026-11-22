@@ -11,7 +11,7 @@ jobs:
       - name: Install p7zip and Blender headless
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends p7zip-full blender
+          sudo apt-get install -y -qq --no-install-recommends p7zip-full blender python3-numpy
 
       - name: Download and convert Submarine-NEW.blend to GLB
         run: |
