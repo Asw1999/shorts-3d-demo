@@ -128,13 +128,24 @@ const TOON_FRAG = /* glsl */ `
       }
     }
 
-    // Blueprint wireframe/X-ray tint blend when uWireMix > 0
+    float finalAlpha = uAlpha * (1.0 - uWireMix * 0.45);
+
+    // Blueprint wireframe/X-ray tint + crisp Fresnel cyan rim when uWireMix > 0
     if (uWireMix > 0.02) {
       vec3 bpFill = vec3(0.16, 0.54, 0.95);
-      col = mix(col, bpFill, uWireMix * 0.72);
+      col = mix(col, bpFill, uWireMix * 0.68);
+      float bpRim = pow(1.0 - ndotv, 1.5) * uWireMix;
+      col = mix(col, vec3(0.84, 0.98, 1.0), clamp(bpRim * 1.35, 0.0, 0.98));
+      finalAlpha = clamp(finalAlpha + bpRim * 0.85, 0.0, 0.98);
     }
 
-    float finalAlpha = uAlpha * (1.0 - uWireMix * 0.65);
+    // Translucent cutaway shell: keep interior clear while lighting grazing silhouette edge
+    if (uAlpha >= 0.12 && uAlpha < 0.92) {
+      float cutRim = pow(1.0 - ndotv, 1.9);
+      col = mix(col, vec3(0.82, 0.98, 1.0), clamp(cutRim * 1.25, 0.0, 0.96));
+      finalAlpha = clamp(finalAlpha + cutRim * 0.78, 0.0, 0.96);
+    }
+
     gl_FragColor = vec4(clamp(col, 0.0, 1.0), finalAlpha);
   }
 `;
@@ -142,6 +153,7 @@ const TOON_FRAG = /* glsl */ `
 const OUTLINE_VERT = /* glsl */ `
   attribute vec3 aSmoothNormal;
   uniform float uThicknessPx;
+  uniform float uDepthBias;
   uniform vec2 uResolution;
   void main() {
     vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
@@ -150,8 +162,8 @@ const OUTLINE_VERT = /* glsl */ `
     vec2 ndcDir = length(clipNormal.xy) > 1e-4 ? normalize(clipNormal.xy) : vec2(0.0);
     vec2 pxOffset = ndcDir * (uThicknessPx * 2.0 / uResolution) * clipPos.w;
     clipPos.xy += pxOffset;
-    // Push slightly behind so front-facing surface always wins depth test
-    clipPos.z += 0.0004 * clipPos.w;
+    // Push slightly behind front-facing surface (rim behind ink) so layers never z-fight
+    clipPos.z += uDepthBias * clipPos.w;
     gl_Position = clipPos;
   }
 `;
@@ -199,6 +211,7 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
   const prepared = new WeakMap();
   const resolution = new THREE.Vector2(W * dsf, H * dsf);
   const rimCol = new THREE.Color('#e2f9ff');
+  const bpRimCol = new THREE.Color('#b8f4ff');
   const inkCol = new THREE.Color('#080a0f');
 
   function ensureMeshMaterials(m) {
@@ -239,6 +252,7 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
         fragmentShader: OUTLINE_FRAG,
         uniforms: {
           uThicknessPx: { value: inkThickPx },
+          uDepthBias: { value: 0.0003 },
           uResolution: { value: resolution },
           uColor: { value: inkCol.clone() },
           uAlpha: { value: 1.0 },
@@ -255,12 +269,13 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
       outlineInk.renderOrder = 0;
       m.add(outlineInk);
 
-      // Outer adaptive bright rim inverted-hull (visible only on dark backgrounds -> >=3:1 WCAG contrast)
+      // Outer adaptive bright rim inverted-hull (visible on dark backgrounds & blueprint X-ray -> >=3:1 WCAG contrast)
       const rimMat = new THREE.ShaderMaterial({
         vertexShader: OUTLINE_VERT,
         fragmentShader: OUTLINE_FRAG,
         uniforms: {
-          uThicknessPx: { value: inkThickPx + 3.2 * dsf },
+          uThicknessPx: { value: inkThickPx + 3.4 * dsf },
+          uDepthBias: { value: 0.0006 },
           uResolution: { value: resolution },
           uColor: { value: rimCol.clone() },
           uAlpha: { value: 0.0 },
@@ -308,13 +323,13 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
       // Render translucent cutaway hulls AFTER opaque internal parts
       m.renderOrder = isTrans ? 10 : 1;
 
-      const showOutline = !ud.noOutline && ud.alpha >= 0.92 && solidAlpha > 0.15;
+      const showInk = !ud.noOutline && ud.alpha >= 0.92 && solidAlpha > 0.15;
       if (rec.outlineInk) {
-        rec.outlineInk.visible = showOutline;
-        rec.outlineInk.material.uniforms.uAlpha.value = showOutline ? solidAlpha * 0.96 : 0;
+        rec.outlineInk.visible = showInk;
+        rec.outlineInk.material.uniforms.uAlpha.value = showInk ? solidAlpha * 0.96 : 0;
       }
       if (rec.outlineRim) {
-        const showRim = showOutline && rimAlpha > 0.02;
+        const showRim = showInk && rimAlpha > 0.02;
         rec.outlineRim.visible = showRim;
         rec.outlineRim.material.uniforms.uColor.value.copy(rimCol);
         rec.outlineRim.material.uniforms.uAlpha.value = showRim ? solidAlpha * rimAlpha : 0;

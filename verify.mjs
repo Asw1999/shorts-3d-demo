@@ -199,14 +199,14 @@ function measureSilhouetteContrast(pngBuf, edges, subjBounds, dsf) {
     // Orient normal outward from subject center
     if (nx * (mx - scx) + ny * (my - scy) < 0) { nx = -nx; ny = -ny; }
 
-    // Background luminance just outside silhouette (10-16px outward)
-    const bgLum = (mx + nx * 14 >= 6 && mx + nx * 14 < W - 6 && my + ny * 14 >= 196 && my + ny * 14 < 808)
-      ? pixLum(mx + nx * 14, my + ny * 14)
+    // Background luminance just outside silhouette (16px outward, clear of outer rim halo)
+    const bgLum = (mx + nx * 16 >= 6 && mx + nx * 16 < W - 6 && my + ny * 16 >= 196 && my + ny * 16 < 808)
+      ? pixLum(mx + nx * 16, my + ny * 16)
       : fallbackBgLum;
 
-    // Best silhouette edge pixel within ±3px across the edge stroke/rim halo
+    // Best silhouette edge pixel within -3..+6 CSS px across ink stroke + outer adaptive rim halo
     let bestR = 1.0;
-    for (let off = -3; off <= 3; off += 1) {
+    for (let off = -3; off <= 6; off += 1) {
       const lEdge = pixLum(mx + nx * off, my + ny * off);
       const r = wcagRatio(lEdge, bgLum);
       if (r > bestR) bestR = r;

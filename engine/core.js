@@ -380,24 +380,46 @@ export function createEngine(opts = {}) {
       ctx.drawImage(glCanvas, 0, 0, W, H);
       ctx.globalAlpha = 1;
       if (hooks && hooks.after3D) hooks.after3D(ctx, W, H);
-      // Populate lightweight silhouette edge hints for automated contrast verification
+      // Populate true outer silhouette edges (same front/back face test as Canvas2D) for contrast verification
       _projMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       lastSilhouetteEdges = [];
       for (const m of meshes) {
         if (!isVisibleInHierarchy(m)) continue;
         const ud = m.userData;
-        if (ud.excludeFromBounds || ud.noOutline || ud.alpha < 0.92) continue;
-        const pos = m.geometry.attributes.position;
-        const step = Math.max(1, Math.floor(pos.count / 12));
-        let prev = null;
-        for (let i = 0; i < pos.count; i += step) {
-          _p.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld).applyMatrix4(_projMat);
-          const sx = (_p.x * 0.5 + 0.5) * W;
-          const sy = (-_p.y * 0.5 + 0.5) * H;
-          if (prev && sx > 24 && sx < W - 24 && sy > 195 && sy < 800) {
-            lastSilhouetteEdges.push([prev[0], prev[1], sx, sy]);
+        if (ud.excludeFromBounds || ud.noOutline || ud.alpha < 0.18) continue;
+        const geo = m.geometry;
+        const pos = geo.attributes.position;
+        const idx = geo.index;
+        const edges = ud.edges;
+        if (!edges || !edges.length) continue;
+        const vCount = pos.count;
+        const triCount = idx ? idx.count / 3 : vCount / 3;
+        ensureScratch(vCount, triCount);
+        const mw = m.matrixWorld;
+        for (let i = 0; i < vCount; i++) {
+          _p.fromBufferAttribute(pos, i).applyMatrix4(mw).applyMatrix4(_projMat);
+          scrX[i] = (_p.x * 0.5 + 0.5) * W;
+          scrY[i] = (-_p.y * 0.5 + 0.5) * H;
+          scrZ[i] = _p.z;
+        }
+        for (let t = 0; t < triCount; t++) {
+          const i0 = idx ? idx.getX(t * 3) : t * 3;
+          const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+          const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+          if (scrZ[i0] < -1 || scrZ[i1] < -1 || scrZ[i2] < -1) { faceVis[t] = 0; continue; }
+          const cross2D = (scrX[i1] - scrX[i0]) * (scrY[i2] - scrY[i0]) - (scrY[i1] - scrY[i0]) * (scrX[i2] - scrX[i0]);
+          faceVis[t] = (ud.noCull || cross2D < 0) ? 1 : 0;
+        }
+        for (let e = 0; e < edges.length; e++) {
+          const ed = edges[e];
+          const v0 = faceVis[ed.f0] === 1;
+          const v1 = ed.f1 >= 0 && faceVis[ed.f1] === 1;
+          if (!((ed.f1 < 0 && v0) || (ed.f1 >= 0 && v0 !== v1))) continue;
+          const mx = 0.5 * (scrX[ed.a] + scrX[ed.b]);
+          const my = 0.5 * (scrY[ed.a] + scrY[ed.b]);
+          if (mx > 24 && mx < W - 24 && my > 195 && my < 800) {
+            lastSilhouetteEdges.push([scrX[ed.a], scrY[ed.a], scrX[ed.b], scrY[ed.b]]);
           }
-          prev = [sx, sy];
         }
       }
       return;
