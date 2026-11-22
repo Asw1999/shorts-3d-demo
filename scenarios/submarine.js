@@ -14,13 +14,22 @@ function lerpRgb(c0, c1, u) {
   ];
 }
 
-export function setup(api) {
+export async function setup(api) {
   const {
-    THREE, W, H, scene, camera, root, dom,
-    addPart, renderSoftware3D, setCallout,
+    THREE, W, H, scene, camera, root, dom, modelParam,
+    addPart, renderSoftware3D, setCallout, loadGlbModel,
     enforceUpperSubjectFraming, beatMap,
     clamp01, easeOutCubic, easeInOut, getTimings,
   } = api;
+
+  // Scenario-configured label anchors in local submarine coordinates (independent of mesh node names)
+  const ANCHOR_CONFIG = {
+    tank: { name: 'TANGKI BALLAST', pos: [-0.54, -0.04, 0.45] },
+    vent: { name: 'KATUP VENT', pos: [0.45, 0.56, 0.18] },
+    center: { name: 'MAIN TIMBANGAN!', pos: [0.0, 0.18, 0.10] },
+    sailPlane: { name: 'SIRIP MENARA', pos: [0.78, 1.08, 0.82] },
+    sternPlane: { name: 'SIRIP EKOR', pos: [0.68, 0.04, -2.78] },
+  };
 
   const bgOcean = dom.bg0;
   dom.bg1.style.opacity = '0';
@@ -31,6 +40,9 @@ export function setup(api) {
   // --- 1. Main Submarine Group ---
   const subGroup = new THREE.Group();
   root.add(subGroup);
+
+  const procHullGroup = new THREE.Group();
+  subGroup.add(procHullGroup);
 
   // Elongated lofted submarine hull (multi-section smooth teardrop/cigar profile, NOT a straight cylinder)
   const hullSections = [
@@ -47,17 +59,17 @@ export function setup(api) {
     { z:  3.28, rx: 0.02, ry: 0.02, cy: -0.07 },
   ];
   const hullGeo = buildLoftGeometry(hullSections, 32, { axialSubdiv: 2 });
-  const hullOuter = addPart(subGroup, hullGeo, 0x45566e, { smooth: true, depthBias: 0.002 });
+  const hullOuter = addPart(procHullGroup, hullGeo, 0x45566e, { smooth: true, depthBias: 0.002 });
 
   // Clean non-intersecting lower keel skeg fin beneath the hull bottom (no coplanar z-fighting)
   const keelGeo = new THREE.BoxGeometry(0.14, 0.14, 3.1);
-  const keelAccent = addPart(subGroup, keelGeo, 0x9b3634);
+  const keelAccent = addPart(procHullGroup, keelGeo, 0x9b3634);
   keelAccent.position.set(0, -0.74, -0.10);
 
   // Conning Tower / Sail (streamlined lofted vertical fin)
   const sailGroup = new THREE.Group();
   sailGroup.position.set(0, 0.54, 0.62);
-  subGroup.add(sailGroup);
+  procHullGroup.add(sailGroup);
 
   const sailProfile = [
     { z: -0.78, rx: 0.06, ry: 0.46, cy: 0.46 },
@@ -95,13 +107,13 @@ export function setup(api) {
     addPart(sailPlanesGroup, sailPlaneGeo, 0x52627a).position.set(s * 0.56, 0, 0);
   }
   const sailPlaneAnchor = new THREE.Object3D();
-  sailPlaneAnchor.position.set(0.78, 0.54, 0.20);
-  sailGroup.add(sailPlaneAnchor);
+  sailPlaneAnchor.position.set(...ANCHOR_CONFIG.sailPlane.pos);
+  subGroup.add(sailPlaneAnchor);
 
   // Aft Cruciform Fins & Articulated Stern Hydroplanes (Sirip Belakang)
   const sternGroup = new THREE.Group();
   sternGroup.position.set(0, 0, -2.78);
-  subGroup.add(sternGroup);
+  procHullGroup.add(sternGroup);
 
   const vFinGeo = new THREE.BoxGeometry(0.075, 1.26, 0.56);
   addPart(sternGroup, vFinGeo, 0x45546a).position.set(0, 0, 0);
@@ -113,13 +125,13 @@ export function setup(api) {
   const hFinGeo = new THREE.BoxGeometry(1.48, 0.075, 0.52);
   addPart(sternPlanesGroup, hFinGeo, 0x52627a).position.set(0, 0, 0);
   const sternPlaneAnchor = new THREE.Object3D();
-  sternPlaneAnchor.position.set(0.68, 0.04, 0);
-  sternGroup.add(sternPlaneAnchor);
+  sternPlaneAnchor.position.set(...ANCHOR_CONFIG.sternPlane.pos);
+  subGroup.add(sternPlaneAnchor);
 
   // Aft 5-Blade Brass Propeller
   const propGroup = new THREE.Group();
   propGroup.position.set(0, 0, -3.44);
-  subGroup.add(propGroup);
+  procHullGroup.add(propGroup);
 
   const propHubGeo = new THREE.ConeGeometry(0.11, 0.28, 14);
   propHubGeo.rotateX(-Math.PI / 2);
@@ -180,18 +192,50 @@ export function setup(api) {
     ventCaps.push(vc);
   }
 
-  // Anchors for callouts
+  // Anchors from scenario config (local coordinates, never from GLB mesh node names)
   const tankAnchor = new THREE.Object3D();
-  tankAnchor.position.set(-0.54, -0.04, 0.45);
+  tankAnchor.position.set(...ANCHOR_CONFIG.tank.pos);
   subGroup.add(tankAnchor);
 
   const ventAnchor = new THREE.Object3D();
-  ventAnchor.position.set(0.45, 0.56, 0.18);
+  ventAnchor.position.set(...ANCHOR_CONFIG.vent.pos);
   subGroup.add(ventAnchor);
 
   const subCenterAnchor = new THREE.Object3D();
-  subCenterAnchor.position.set(0, 0.18, 0.10);
+  subCenterAnchor.position.set(...ANCHOR_CONFIG.center.pos);
   subGroup.add(subCenterAnchor);
+
+  // Optional external .glb model adapter (model: "procedural" | "glb:<path>")
+  // Procedural model is NEVER deleted; when glb is selected, procedural ballast tanks stay inside the GLB hull!
+  let glbHullParts = [];
+  let modelMeta = { model: modelParam || 'procedural', triangleCount: null };
+  if (typeof modelParam === 'string' && modelParam.startsWith('glb:')) {
+    const rawPath = modelParam.slice(4).trim();
+    const glbUrl = rawPath.startsWith('/') || rawPath.startsWith('http')
+      ? rawPath
+      : (rawPath.startsWith('assets/') ? `/${rawPath}` : `/__assets__/${rawPath}`);
+    const loaded = await loadGlbModel(glbUrl, subGroup, {
+      targetLength: 5.2,
+      neutralWhiteFallback: 0x4b5e78,
+      depthBias: 0.002,
+      outlineStrength: 1.0,
+    });
+    // Engine normalizes longest axis to X; orient X -> Z-forward to match submarine scene axes
+    loaded.group.rotation.y = Math.PI / 2;
+    glbHullParts = loaded.parts;
+    procHullGroup.visible = false;
+    modelMeta = { model: modelParam, ...loaded.meta };
+  } else {
+    let procTris = 0;
+    procHullGroup.traverse((o) => {
+      if (o.isMesh && o.geometry?.attributes?.position) {
+        procTris += o.geometry.index
+          ? Math.floor(o.geometry.index.count / 3)
+          : Math.floor(o.geometry.attributes.position.count / 3);
+      }
+    });
+    modelMeta = { model: 'procedural', triangleCount: procTris };
+  }
 
   // 3D Rising Bubbles from Vents (Beat 3 Dive) & Bottom Flood Ports (Beat 5 Surface)
   const bubbleGeo = new THREE.IcosahedronGeometry(0.085, 1);
@@ -381,11 +425,14 @@ export function setup(api) {
     }
 
     // Cutaway X-ray transparency during Beats 2..5 (tanks, dive, neutral, surface)
+    // Works identically on both procedural hull and external .glb hull parts!
     const cutawayIn = easeInOut((t - (tTanksS + 0.2)) / 0.55);
     const cutawayOut = easeInOut((t - (tHydroS - 0.45)) / 0.55);
     const cutawayMix = clamp01(cutawayIn * (1 - cutawayOut));
-    hullOuter.userData.alpha = lerp(1.0, 0.22, cutawayMix);
-    keelAccent.userData.alpha = lerp(1.0, 0.22, cutawayMix);
+    const hullOpacity = lerp(1.0, 0.24, cutawayMix);
+    hullOuter.userData.alpha = hullOpacity;
+    keelAccent.userData.alpha = hullOpacity;
+    for (const gp of glbHullParts) gp.userData.alpha = hullOpacity;
     cutawayGroup.visible = cutawayMix > 0.05;
 
     // Animated Ballast Tank Water Level (0..1) via generic engine updateFillColumn
@@ -656,5 +703,5 @@ export function setup(api) {
     headline: 'TENGGELAM & MUNCUL SESUKA HATI!',
   };
 
-  return { render, getSubjectGroups, hook };
+  return { render, getSubjectGroups, hook, getModelMeta: () => modelMeta };
 }

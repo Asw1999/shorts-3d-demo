@@ -1,0 +1,66 @@
+name: Convert OpenGameArt CC0 Blend to GLB
+
+on:
+  workflow_dispatch:
+
+jobs:
+  convert:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install p7zip and Blender headless
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends p7zip-full blender
+
+      - name: Download and convert Submarine-NEW.blend to GLB
+        run: |
+          mkdir -p out_glb/extracted
+          curl -fsSL -A "Mozilla/5.0" "https://opengameart.org/sites/default/files/Submarine.7z" -o out_glb/Submarine.7z
+          7z x -y -oout_glb/extracted out_glb/Submarine.7z
+          ls -la out_glb/extracted
+          blender -b out_glb/extracted/Submarine-NEW.blend --python-expr "
+          import bpy, json
+          meshes = [o for o in bpy.data.objects if o.type == 'MESH']
+          tris = 0
+          info = []
+          for o in meshes:
+              deps = bpy.context.evaluated_depsgraph_get()
+              eo = o.evaluated_get(deps)
+              m = eo.to_mesh()
+              m.calc_loop_triangles()
+              t = len(m.loop_triangles)
+              tris += t
+              mats = []
+              for mat in o.data.materials:
+                  if mat:
+                      mats.append({'name': mat.name, 'diffuse': list(mat.diffuse_color)})
+              info.append({'name': o.name, 'verts': len(m.vertices), 'tris': t, 'dims': list(o.dimensions), 'mats': mats})
+              eo.to_mesh_clear()
+          # Remove cameras/lights so GLB has clean mesh hierarchy only
+          for o in list(bpy.data.objects):
+              if o.type != 'MESH':
+                  bpy.data.objects.remove(o, do_unlink=True)
+          bpy.ops.export_scene.gltf(
+              filepath='out_glb/submarine_cc0.glb',
+              export_format='GLB',
+              export_texcoords=False,
+              export_normals=True,
+              export_materials='EXPORT',
+              export_image_format='NONE'
+          )
+          report = {'totalTriangles': tris, 'meshes': info}
+          open('out_glb/convert_report.json', 'w').write(json.dumps(report, indent=2))
+          print(json.dumps(report, indent=2))
+          "
+          ls -lh out_glb/submarine_cc0.glb
+
+      - name: Upload converted GLB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: submarine-cc0-glb
+          path: |
+            out_glb/submarine_cc0.glb
+            out_glb/convert_report.json
+          retention-days: 1
+          if-no-files-found: error

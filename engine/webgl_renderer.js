@@ -42,10 +42,19 @@ function buildWeldedOutlineGeometry(srcGeo) {
 const TOON_VERT = /* glsl */ `
   varying vec3 vWorldPos;
   varying vec3 vWorldNormal;
+  varying vec3 vVertColor;
+  #ifdef USE_VCOLOR
+  attribute vec3 color;
+  #endif
   void main() {
     vec4 wp = modelMatrix * vec4(position, 1.0);
     vWorldPos = wp.xyz;
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    #ifdef USE_VCOLOR
+      vVertColor = color;
+    #else
+      vVertColor = vec3(1.0);
+    #endif
     gl_Position = projectionMatrix * viewMatrix * wp;
   }
 `;
@@ -64,9 +73,11 @@ const TOON_FRAG = /* glsl */ `
   uniform float uDsf;
   varying vec3 vWorldPos;
   varying vec3 vWorldNormal;
+  varying vec3 vVertColor;
 
   void main() {
     if (uAlpha <= 0.01) discard;
+    vec3 baseCol = uBaseColor * vVertColor;
     vec3 N = uSmooth > 0.5
       ? normalize(vWorldNormal)
       : normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
@@ -74,7 +85,7 @@ const TOON_FRAG = /* glsl */ `
     vec3 V = normalize(cameraPosition - vWorldPos);
     float ndotv = clamp(dot(N, V), 0.0, 1.0);
 
-    vec3 col = uBaseColor;
+    vec3 col = baseCol;
     if (uUnlit < 0.5) {
       float ndotl = dot(N, normalize(uSunDir));
       vec3 H = normalize(normalize(uSunDir) + V);
@@ -84,9 +95,9 @@ const TOON_FRAG = /* glsl */ `
       float tMid = smoothstep(-0.14 - bandW, -0.14 + bandW, ndotl);
       float tLit = smoothstep(0.30 - bandW, 0.30 + bandW, ndotl);
 
-      vec3 deepCol = uBaseColor * vec3(0.50, 0.44, 0.62) + vec3(0.0, 0.0, 0.03);
-      vec3 midCol  = uBaseColor * vec3(0.76, 0.70, 0.84) + vec3(0.0, 0.0, 0.02);
-      vec3 litCol  = uBaseColor * vec3(1.02, 1.00, 0.95) + vec3(0.012, 0.008, 0.0);
+      vec3 deepCol = baseCol * vec3(0.50, 0.44, 0.62) + vec3(0.0, 0.0, 0.03);
+      vec3 midCol  = baseCol * vec3(0.76, 0.70, 0.84) + vec3(0.0, 0.0, 0.02);
+      vec3 litCol  = baseCol * vec3(1.02, 1.00, 0.95) + vec3(0.012, 0.008, 0.0);
       col = mix(mix(deepCol, midCol, tMid), litCol, tLit);
 
       if (uNoSpec < 0.5) {
@@ -98,7 +109,7 @@ const TOON_FRAG = /* glsl */ `
 
       // Adaptive Fresnel rim light on dark backgrounds
       if (uDarkFactor > 0.02) {
-        float objLum = dot(uBaseColor, vec3(0.2126, 0.7152, 0.0722));
+        float objLum = dot(baseCol, vec3(0.2126, 0.7152, 0.0722));
         float objDark = clamp((0.55 - objLum) / 0.35, 0.0, 1.0);
         float rimPow = pow(clamp(1.0 - ndotv / 0.54, 0.0, 1.0), 1.6);
         float rimAmt = rimPow * uDarkFactor * (0.42 + 0.48 * objDark);
@@ -194,9 +205,11 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
     if (prepared.has(m)) return prepared.get(m);
     const ud = m.userData;
     const baseCol = new THREE.Color(ud.baseR, ud.baseG, ud.baseB);
+    const hasVCol = Boolean(ud.useVertexColors && m.geometry.attributes.color);
     const mat = new THREE.ShaderMaterial({
       vertexShader: TOON_VERT,
       fragmentShader: TOON_FRAG,
+      defines: hasVCol ? { USE_VCOLOR: 1 } : {},
       uniforms: {
         uBaseColor: { value: baseCol },
         uSunDir: { value: sunDir.clone() },
@@ -215,16 +228,17 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
     });
     m.material = mat;
 
-    // Inverted-hull BackSide outline child (excluded from subject framing bounds!)
+    // Solid anti-aliased inverted-hull BackSide outline (>=2.5px @1080p, polygonOffset prevents dashes/shimmer)
     let outlineInk = null;
     let outlineRim = null;
     if (!ud.noOutline) {
       const oGeo = buildWeldedOutlineGeometry(m.geometry);
+      const inkThickPx = Math.max(2.6, 2.6 * Math.sqrt(ud.outlineStrength || 1.0) * dsf);
       const inkMat = new THREE.ShaderMaterial({
         vertexShader: OUTLINE_VERT,
         fragmentShader: OUTLINE_FRAG,
         uniforms: {
-          uThicknessPx: { value: 2.5 * Math.sqrt(ud.outlineStrength || 1.0) * dsf },
+          uThicknessPx: { value: inkThickPx },
           uResolution: { value: resolution },
           uColor: { value: inkCol.clone() },
           uAlpha: { value: 1.0 },
@@ -232,6 +246,9 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
         side: THREE.BackSide,
         transparent: true,
         depthWrite: true,
+        polygonOffset: true,
+        polygonOffsetFactor: 2,
+        polygonOffsetUnits: 2,
       });
       outlineInk = new THREE.Mesh(oGeo, inkMat);
       outlineInk.userData = { excludeFromBounds: true, _isOutlineHelper: true };
@@ -243,7 +260,7 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
         vertexShader: OUTLINE_VERT,
         fragmentShader: OUTLINE_FRAG,
         uniforms: {
-          uThicknessPx: { value: 5.5 * Math.sqrt(ud.outlineStrength || 1.0) * dsf },
+          uThicknessPx: { value: inkThickPx + 3.2 * dsf },
           uResolution: { value: resolution },
           uColor: { value: rimCol.clone() },
           uAlpha: { value: 0.0 },
@@ -251,6 +268,9 @@ export function createWebGLRenderer(W, H, dsf, sunDir) {
         side: THREE.BackSide,
         transparent: true,
         depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: 3,
+        polygonOffsetUnits: 3,
       });
       outlineRim = new THREE.Mesh(oGeo, rimMat);
       outlineRim.userData = { excludeFromBounds: true, _isOutlineHelper: true };

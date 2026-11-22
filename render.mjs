@@ -18,6 +18,8 @@ const MIME = {
   '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
 };
 
 function whichBin(name) {
@@ -266,6 +268,7 @@ async function renderSegment({
   scenario,
   preset,
   renderer,
+  model,
   dsf,
   chromeBin,
   chromeSource,
@@ -359,6 +362,7 @@ async function renderSegment({
       dsf: String(dsf),
       preset: preset || 'explainer',
       renderer: renderer || 'canvas2d',
+      model: model || 'procedural',
     }).toString();
     await send('Page.navigate', { url: `http://127.0.0.1:${serverPort}/index.html?${pageQuery}` });
 
@@ -379,6 +383,8 @@ async function renderSegment({
     if (!ready) {
       throw new Error(`Shard ${shardNum}/${totalShards} did not signal window.__ready=true (${chromeErr.slice(-300)})`);
     }
+    const metaRes = await send('Runtime.evaluate', { expression: 'window.__modelMeta || null', returnByValue: true });
+    const modelMeta = metaRes?.result?.value || null;
 
     // Video-only encode with closed GOP aligned to shard boundaries + CQP 18 for 0.0000% seam determinism
     const ffArgs = [
@@ -457,6 +463,8 @@ async function renderSegment({
       scenario,
       preset: preset || 'explainer',
       renderer: renderer || 'canvas2d',
+      model: model || 'procedural',
+      modelMeta,
       startFrame,
       endFrame,
       frameCount,
@@ -526,6 +534,7 @@ async function main() {
         scenario: opts.scenario,
         preset: opts.preset,
         renderer: opts.renderer,
+        model: opts.model,
         dsf: opts.dsf,
         chromeBin,
         chromeSource,

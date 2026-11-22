@@ -19,13 +19,18 @@ on:
         default: 'explainer'
         type: string
       renderer:
-        description: 'Renderer backend (canvas2d, webgl)'
+        description: 'Renderer backend (webgl, canvas2d)'
         required: false
-        default: 'canvas2d'
+        default: 'webgl'
+        type: string
+      model:
+        description: 'Model source (procedural or glb:<path>)'
+        required: false
+        default: 'procedural'
         type: string
 
 concurrency:
-  group: render-${{ inputs.scenario || 'submarine' }}
+  group: render-${{ inputs.scenario || 'submarine' }}-${{ inputs.model || 'procedural' }}
   cancel-in-progress: true
 
 env:
@@ -87,7 +92,8 @@ jobs:
           SHARDS: ${{ inputs.shards }}
           DSF: '1.5'
           PRESET: ${{ inputs.preset || 'explainer' }}
-          RENDERER: ${{ inputs.renderer || 'canvas2d' }}
+          RENDERER: ${{ inputs.renderer || 'webgl' }}
+          MODEL: ${{ inputs.model || 'procedural' }}
         run: |
           node render.mjs --shard "${{ matrix.shard }}/${{ inputs.shards }}"
 
@@ -138,17 +144,28 @@ jobs:
           ASSETS_DIR: assets/${{ inputs.scenario }}
           OUT_DIR: out_cloud
           SHARDS: ${{ inputs.shards }}
-          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.4.mp4
+          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.5.mp4
+          PRESET: ${{ inputs.preset || 'explainer' }}
+          RENDERER: ${{ inputs.renderer || 'webgl' }}
+          MODEL: ${{ inputs.model || 'procedural' }}
         run: |
           node mux.mjs
 
-      - name: Run Temporal Stability Gate (jitter + phase correlation)
+      - name: Run Temporal Stability Gate (mean <= 0.02, maxSec <= 0.15, osc < 6)
         env:
           SCENARIO: ${{ inputs.scenario }}
           OUT_DIR: out_cloud
-          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.4.mp4
+          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.5.mp4
         run: |
           node temporal_check.mjs
+
+      - name: Run Edge Shimmer Gate (540x960 <= v1.2 baseline)
+        env:
+          SCENARIO: ${{ inputs.scenario }}
+          OUT_DIR: out_cloud
+          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.5.mp4
+        run: |
+          node edge_shimmer_check.mjs
 
       - name: Run Seam Check (SHARDS=1 vs ${{ inputs.shards }}, ±3 frames = 0.0000%)
         env:
@@ -158,19 +175,21 @@ jobs:
           SHARDS: ${{ inputs.shards }}
           DSF: '1.5'
           PRESET: ${{ inputs.preset || 'explainer' }}
-          RENDERER: ${{ inputs.renderer || 'canvas2d' }}
+          RENDERER: ${{ inputs.renderer || 'webgl' }}
+          MODEL: ${{ inputs.model || 'procedural' }}
         run: |
           node seam_check.mjs
 
-      - name: Run CI Verification Gates (0.25s layout/contrast/hook/word-gap + ffprobe + ebur128)
+      - name: Run CI Verification Gates (tight 35% bbox + contrast >=3:1 + hook >=60% + ffprobe + ebur128)
         env:
           SCENARIO: ${{ inputs.scenario }}
           ASSETS_DIR: assets/${{ inputs.scenario }}
           OUT_DIR: out_cloud
-          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.4.mp4
+          OUTPUT_MP4: demo_${{ inputs.scenario }}_v1.5.mp4
           DSF: '1.5'
           PRESET: ${{ inputs.preset || 'explainer' }}
-          RENDERER: ${{ inputs.renderer || 'canvas2d' }}
+          RENDERER: ${{ inputs.renderer || 'webgl' }}
+          MODEL: ${{ inputs.model || 'procedural' }}
         run: |
           node verify.mjs
           cat out_cloud/metrics.json
@@ -180,7 +199,7 @@ jobs:
         with:
           name: video-${{ inputs.scenario }}
           path: |
-            out_cloud/demo_${{ inputs.scenario }}_v1.4.mp4
+            out_cloud/demo_${{ inputs.scenario }}_v1.5.mp4
             out_cloud/metrics.json
           retention-days: 1
           if-no-files-found: error

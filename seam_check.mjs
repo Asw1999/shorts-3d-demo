@@ -17,6 +17,8 @@ const MIME = {
   '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
 };
 
 function whichBin(name) {
@@ -155,6 +157,7 @@ async function captureFrameRange(chromeBin, port, scenario, dsf, startF, endF, c
       dsf: String(dsf),
       preset: process.env.PRESET || 'explainer',
       renderer: process.env.RENDERER || 'canvas2d',
+      model: process.env.MODEL || 'procedural',
     }).toString();
     await send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html?${q}` });
     for (let i = 0; i < 80; i++) {

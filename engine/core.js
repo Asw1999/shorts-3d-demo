@@ -1,6 +1,7 @@
 import * as THREE from '../vendor/three160.module.min.js';
 import { resolvePreset } from './presets.js';
 import { createWebGLRenderer } from './webgl_renderer.js';
+import { loadNormalizedGlb } from './glb_loader.js';
 
 export { THREE };
 
@@ -144,6 +145,7 @@ export function createEngine(opts = {}) {
   const dsf = Number(opts.dsf || 1.5);
   const preset = resolvePreset(opts.preset);
   const rendererMode = String(opts.renderer || 'canvas2d').toLowerCase();
+  const modelParam = String(opts.model || 'procedural');
   const flags = {
     autoFrame: opts.flags?.autoFrame !== false,
     adaptiveRim: opts.flags?.adaptiveRim !== false,
@@ -190,6 +192,7 @@ export function createEngine(opts = {}) {
       noOutline: Boolean(partOpts.noOutline),
       noSpecular: Boolean(partOpts.noSpecular),
       smooth: isSmooth,
+      useVertexColors: Boolean(partOpts.useVertexColors),
       excludeFromBounds: Boolean(partOpts.excludeFromBounds),
       alpha: partOpts.alpha !== undefined ? partOpts.alpha : 1.0,
       depthBias: partOpts.depthBias || 0,
@@ -592,8 +595,10 @@ export function createEngine(opts = {}) {
     }
 
     drawList.sort((a, b) => b.depth - a.depth);
+    ctx.setLineDash([]);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
+    const minStrokeCss = 2.0 / dsf; // >= 2px solid at 1080p
     const solidAlpha = 1 - wireMix;
 
     for (let i = 0; i < drawList.length; i++) {
@@ -602,17 +607,18 @@ export function createEngine(opts = {}) {
         ctx.beginPath();
         ctx.moveTo(item.ax, item.ay);
         ctx.lineTo(item.bx, item.by);
+        const strokeW = Math.max(minStrokeCss, item.lw);
         // Adaptive bright outer rim halo on dark backgrounds + crisp dark ink inner edge (>=3:1 WCAG everywhere)
         if (item.isSilhouette && darkFactor > 0.08) {
           const rimAlpha = smoothstep(0.08, 0.40, darkFactor);
           ctx.globalAlpha = solidAlpha * item.alpha * rimAlpha;
           ctx.strokeStyle = preset.palette.rimHex;
-          ctx.lineWidth = item.lw + 3.6 * rimAlpha;
+          ctx.lineWidth = strokeW + 3.6 * rimAlpha;
           ctx.stroke();
         }
         ctx.globalAlpha = solidAlpha * item.alpha;
         ctx.strokeStyle = '#080a0f';
-        ctx.lineWidth = item.lw;
+        ctx.lineWidth = strokeW;
         ctx.stroke();
         continue;
       }
@@ -912,22 +918,39 @@ export function createEngine(opts = {}) {
     return box;
   }
 
+  /**
+   * Collect actual world-space vertices of static core subject meshes (excluding transient
+   * particles/effects/outline helpers). Prevents rotated 8-corner AABB empty-air inflation.
+   */
+  function collectCoreSubjectVertices(groups) {
+    scene.updateMatrixWorld(true);
+    const pts = [];
+    const box = new THREE.Box3();
+    const tmp = new THREE.Vector3();
+    for (const grp of groups) {
+      if (!grp) continue;
+      grp.traverse((o) => {
+        if (!o.isMesh || !isVisibleInHierarchy(o)) return;
+        if (o.userData && o.userData.excludeFromBounds) return;
+        const pos = o.geometry?.attributes?.position;
+        if (!pos || pos.count === 0) return;
+        const step = Math.max(1, Math.floor(pos.count / 96));
+        for (let i = 0; i < pos.count; i += step) {
+          tmp.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+          pts.push(tmp.clone());
+          box.expandByPoint(tmp);
+        }
+      });
+    }
+    return { pts, box };
+  }
+
   function getSubjectBounds(groups) {
-    const box = computeGroupsBox3(groups);
-    if (box.isEmpty()) {
+    const { pts } = collectCoreSubjectVertices(groups);
+    if (!pts.length) {
       return { minX: 0, minY: 0, maxX: 0, maxY: 0, widthPct: 0, heightPct: 0, centerYPct: 0, bottomPct: 0 };
     }
     camera.updateMatrixWorld(true);
-    const pts = [
-      new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-    ];
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     const v = new THREE.Vector3();
     for (const p of pts) {
@@ -1014,21 +1037,11 @@ export function createEngine(opts = {}) {
       applyCameraPacing(t, camTarget);
     }
 
-    const box = computeGroupsBox3(groups);
-    if (box.isEmpty()) {
+    const { pts: corners, box } = collectCoreSubjectVertices(groups);
+    if (!corners.length || box.isEmpty()) {
       lastCamTarget.copy(camTarget);
       return;
     }
-    const corners = [
-      new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-    ];
 
     // Smooth deterministic safe vertical band (NEVER reads live 1-line/2-line caption height!)
     const hookExit = smoothstep(1.75, 2.20, t);
@@ -1037,7 +1050,7 @@ export function createEngine(opts = {}) {
     const availH = safeBottom - safeTop;
     const idealCy = safeTop + availH * 0.50;
 
-    // Smooth desired subject height: ~32% during hook banner -> preset targetHeightFrac during explanation beats (>=35%)
+    // Smooth desired tight-vertex height: ~32% during hook banner -> preset targetHeightFrac (>=35%)
     const explBlend = smoothstep(1.65, 2.35, t);
     const targetH = Math.min(availH * 0.88, H * (0.318 + (preset.camera.targetHeightFrac - 0.318) * explBlend));
 
@@ -1184,9 +1197,10 @@ export function createEngine(opts = {}) {
 
   async function mountScenario(scenarioModule, timingsUrl) {
     const api = {
-      THREE, W, H, fps: defaultFps,
+      THREE, W, H, fps: defaultFps, modelParam, rendererMode, preset,
       canvas, ctx, scene, camera, sunDir, root, meshes, dom,
       addPart, isVisibleInHierarchy, renderSoftware3D,
+      loadGlbModel: (url, parentGrp, glbOpts) => loadNormalizedGlb(url, addPart, parentGrp, glbOpts),
       projectToScreen, setCallout,
       enforceUpperSubjectFraming, getSubjectBounds,
       findWordTime, beatMap, updateCaption, setTopPill,
@@ -1194,8 +1208,9 @@ export function createEngine(opts = {}) {
       getTimings: () => TIMINGS,
     };
 
-    const instance = scenarioModule.setup(api);
+    const instance = await scenarioModule.setup(api);
     const hookCfg = instance.hook || scenarioModule.HOOK || null;
+    window.__modelMeta = instance.getModelMeta ? instance.getModelMeta() : { model: modelParam, triangleCount: null };
 
     try {
       const res = await fetch(timingsUrl);

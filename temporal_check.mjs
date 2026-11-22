@@ -278,7 +278,7 @@ export function analyzeTemporalStability(mp4Path, opts = {}) {
   }
 
   const maxOscRun = Math.max(maxOscRunX, maxOscRunY);
-  const tripletMeanPass = meanFrac <= 0.03;
+  const tripletMeanPass = meanFrac <= 0.02;
   const tripletMaxSecPass = maxSecFrac <= 0.15;
   const phaseOscPass = maxOscRun < 6;
   const pass = tripletMeanPass && tripletMaxSecPass && phaseOscPass;
@@ -314,7 +314,7 @@ function formatSummaryMarkdown(scenario, res) {
     '',
     '| Metric | Result | Measured | Threshold |',
     '| --- | --- | --- | --- |',
-    `| Mean Triplet Reversal (ratio < 0.6) | ${m(res.checks.meanFracLe003)} | ${res.meanJitterFrac.toFixed(4)} (${res.jitterTriplets}/${res.numFrames - 2}) | <= 0.0300 |`,
+    `| Mean Triplet Reversal (ratio < 0.6) | ${m(res.checks.meanFracLe003)} | ${res.meanJitterFrac.toFixed(4)} (${res.jitterTriplets}/${res.numFrames - 2}) | <= 0.0200 |`,
     `| Max Per-Second Reversal Frac | ${m(res.checks.maxSecFracLe015)} | ${res.maxSecJitterFrac.toFixed(4)} (at s=${res.maxSecIdx}) | <= 0.1500 |`,
     `| Phase-Corr Sign-Flip Run (>=1px @270p) | ${m(res.checks.phaseOscLt6)} | maxRun=${res.maxOscRun} (dx=${res.maxOscRunX}, dy=${res.maxOscRunY}) | < 6 consecutive frames |`,
     '',

@@ -254,6 +254,7 @@
     const dsf = Number(params.get('dsf') || 1.5);
     const preset = params.get('preset') || 'explainer';
     const renderer = params.get('renderer') || 'canvas2d';
+    const model = params.get('model') || 'procedural';
     const flags = {
       autoFrame: params.get('noAutoFrame') !== '1',
       adaptiveRim: params.get('noAdaptiveRim') !== '1',
@@ -262,7 +263,7 @@
       hook: params.get('noHook') !== '1',
     };
 
-    const engine = createEngine({ fps: 24, dsf, preset, renderer, flags });
+    const engine = createEngine({ fps: 24, dsf, preset, renderer, model, flags });
     const scenarioModule = await import(`./scenarios/${scenarioName}.js`);
     await engine.mountScenario(scenarioModule, timingsUrl);
   </script>

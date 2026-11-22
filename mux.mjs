@@ -15,6 +15,7 @@ export function parseCommonArgs(argv) {
     dsf: Number(process.env.DSF || 1.5),
     preset: process.env.PRESET || 'explainer',
     renderer: process.env.RENDERER || 'canvas2d',
+    model: process.env.MODEL || 'procedural',
     shardSpec: '',
   };
   for (let i = 0; i < argv.length; i++) {
@@ -27,6 +28,7 @@ export function parseCommonArgs(argv) {
     else if (a === '--dsf' && argv[i + 1]) opts.dsf = Number(argv[++i]);
     else if (a === '--preset' && argv[i + 1]) opts.preset = argv[++i];
     else if (a === '--renderer' && argv[i + 1]) opts.renderer = argv[++i];
+    else if (a === '--model' && argv[i + 1]) opts.model = argv[++i];
     else if (a === '--shard' && argv[i + 1]) opts.shardSpec = argv[++i];
   }
   if (!opts.output) {
@@ -208,6 +210,8 @@ export async function muxSegments(opts) {
     scenario: opts.scenario,
     preset: shardMetrics[0]?.preset || opts.preset || 'explainer',
     renderer: shardMetrics[0]?.renderer || opts.renderer || 'canvas2d',
+    model: shardMetrics[0]?.model || opts.model || 'procedural',
+    modelMeta: shardMetrics[0]?.modelMeta || null,
     shards: expectedN,
     totalFrames,
     gop: shardMetrics[0]?.gop || 24,
