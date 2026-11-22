@@ -990,8 +990,9 @@ export function setup(api) {
       const b3 = t >= tOutro + 0.45 && t <= Math.min(totalDur - 1.85, tOutroEnd + 0.25);
       const isFiring = (b1 || b2 || b3) && !inPayoffHangar;
 
-      barrelSpinner.rotation.z = isFiring ? t * 24.0 : t * 1.8;
-      const fanSpeed = isFiring ? 22.0 : 14.5;
+      // Keep symmetric rotary/flash speeds safely below 24fps Nyquist (<12Hz) so WebGL MSAA has zero stroboscopic aliasing
+      barrelSpinner.rotation.z = isFiring ? t * 4.2 : t * 1.4;
+      const fanSpeed = isFiring ? 3.8 : 3.2;
       fanGroups.forEach((fg, idx) => {
         fg.rotation.z = t * fanSpeed * (idx === 0 ? 1 : -1);
       });
@@ -1000,32 +1001,32 @@ export function setup(api) {
       const igniterOn = t >= tIgniter + 0.85 && t <= Math.max(tIgniter + 4.9, igniterMid + 0.95);
       igniterSparks.forEach((sp, idx) => {
         sp.visible = igniterOn;
-        if (sp.visible) sp.scale.setScalar(0.95 + 0.25 * Math.sin(t * 10 + idx));
+        if (sp.visible) sp.scale.setScalar(0.96 + 0.18 * Math.sin(t * 4.5 + idx));
       });
       igniterArcs.forEach((ag, idx) => {
         ag.visible = igniterOn;
         if (ag.visible) {
-          ag.rotation.z = t * (idx === 0 ? 7.5 : -8.5);
-          ag.scale.setScalar(0.92 + 0.22 * Math.sin(t * 9 + idx));
+          ag.rotation.z = t * (idx === 0 ? 3.2 : -3.6);
+          ag.scale.setScalar(0.94 + 0.16 * Math.sin(t * 4.2 + idx));
         }
       });
 
       if (isFiring) {
-        // Smooth damped recoil & muzzle glow (low-freq 10 rad/s, zero frame-alternating strobe jitter)
-        const pulse = 0.5 + 0.5 * Math.sin(t * 14);
-        const recoilKick = -0.095 - 0.035 * pulse;
+        // Smooth damped recoil & muzzle glow (low-freq 5.5 rad/s, zero frame-alternating strobe jitter)
+        const pulse = 0.5 + 0.5 * Math.sin(t * 5.5);
+        const recoilKick = -0.095 - 0.030 * pulse;
         root.position.set(0, Math.sin(t * 2.1) * 0.045, recoilKick);
         flashOuter.visible = true;
-        flashOuter.scale.setScalar(0.92 + 0.24 * pulse);
-        flashOuter.rotation.z = t * 9.5;
+        flashOuter.scale.setScalar(0.94 + 0.18 * pulse);
+        flashOuter.rotation.z = t * 2.4;
         flashCore.visible = true;
-        flashCore.scale.setScalar(0.84 + 0.26 * pulse);
-        flashCore.rotation.z = -t * 11.0;
-        flashOverlay.style.opacity = (0.24 + 0.22 * pulse).toFixed(2);
+        flashCore.scale.setScalar(0.88 + 0.18 * pulse);
+        flashCore.rotation.z = -t * 2.8;
+        flashOverlay.style.opacity = (0.24 + 0.16 * pulse).toFixed(2);
 
         tracers.forEach((tr, i) => {
           tr.visible = true;
-          const zProg = 0.25 + ((t * 14 + i * 0.95) % 2.8);
+          const zProg = 0.25 + ((t * 5.2 + i * 0.95) % 2.8);
           tr.position.set((i % 2 === 0 ? 0.05 : -0.05), ((i % 3) - 1) * 0.035, zProg);
         });
       } else {
@@ -1057,7 +1058,7 @@ export function setup(api) {
               -0.22 + rawAge * 0.55 - 2.65 * rawAge * rawAge,
               1.32 - rawAge * 4.4
             );
-            sg.rotation.set(t * 14 + i, t * 11 + i * 0.7, t * 17);
+            sg.rotation.set(t * 4.5 + i, t * 3.8 + i * 0.7, t * 5.0);
           } else {
             sg.visible = false;
           }

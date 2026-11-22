@@ -190,7 +190,7 @@ async function encodeFrames(jpegs, outPath) {
     '-color_range', 'tv', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709',
     '-bsf:v', 'h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1:video_full_range_flag=0',
     '-preset', 'medium', '-qp', '18',
-    '-x264-params', `keyint=${GOP}:min-keyint=${GOP}:scenecut=0:open-gop=0:threads=1`,
+    '-x264-params', `keyint=${GOP}:min-keyint=${GOP}:scenecut=0:open-gop=0:b-adapt=0:threads=1`,
     '-video_track_timescale', '24000', '-an', '-movflags', '+faststart',
     outPath,
   ];
